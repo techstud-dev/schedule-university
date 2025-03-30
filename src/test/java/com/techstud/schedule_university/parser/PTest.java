@@ -1,4 +1,4 @@
 package com.techstud.schedule_university.parser;
 
-public class p {
+public class PTest {
 }

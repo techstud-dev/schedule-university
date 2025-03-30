@@ -1,4 +1,4 @@
 package com.techstud.schedule_university.core;
 
-public class c {
+public class C {
 }

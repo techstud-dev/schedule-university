@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  main-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: Main-Application
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+
+networks:
+  backend:
