@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseCookie;
@@ -105,7 +106,7 @@ public class AuthController {
             }
     )
     @PostMapping("/login")
-    public ResponseEntity<SuccessAuthenticationDTO> login(@RequestBody LoginDTO dto) throws Exception {
+    public ResponseEntity<SuccessAuthenticationDTO> login(@RequestBody @Valid LoginDTO dto) throws Exception {
         log.info("Incoming login request, id: {}", dto.requestId());
         SuccessAuthenticationDTO response = loginService.processLogin(dto);
 
@@ -187,7 +188,7 @@ public class AuthController {
             }
     )
     @PostMapping("/register")
-    public ResponseEntity<SuccessAuthenticationDTO> register(@RequestBody RegisterDTO dto) throws Exception {
+    public ResponseEntity<SuccessAuthenticationDTO> register(@RequestBody @Valid RegisterDTO dto) throws Exception {
         log.info("Incoming register request, username: {}", dto.username());
         SuccessAuthenticationDTO response = registrationService.processRegister(dto);
 
@@ -245,7 +246,7 @@ public class AuthController {
             }
     )
     @PostMapping("/refresh-token")
-    public ResponseEntity<String> refreshToken(@RequestBody RefreshTokenRequest dto) throws Exception {
+    public ResponseEntity<String> refreshToken(@RequestBody @Valid RefreshTokenRequest dto) throws Exception {
         log.info("Incoming refresh token request, id: {}", dto.requestId());
         String accessToken = refreshTokenService.refreshToken(dto.refreshToken());
 
