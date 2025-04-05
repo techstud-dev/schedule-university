@@ -1,2 +1,10 @@
 databaseChangeLog:
-  - # TODO
+  # AUTH SERVICE CHANGELOG
+  - include:
+      file: "db/changelog/auth/2024/2024-12-13-create-table.yaml"
+  - include:
+      file: "db/changelog/auth/2024/2024.12.16-SCHU-78-add_modified_created_columns.yaml"
+  - include:
+      file: "db/changelog/auth/2025/2025.01.25-SCHU-101-add_new_columns.yaml"
+  - include:
+      file: "db/changelog/auth/2025/2025.05.04-SCHU-144-adding_new_schemas.yaml"

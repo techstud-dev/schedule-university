@@ -7,12 +7,14 @@ import com.techstud.schedule_university.auth.entity.RefreshToken;
 import com.techstud.schedule_university.auth.entity.Role;
 import com.techstud.schedule_university.auth.entity.University;
 import com.techstud.schedule_university.auth.entity.User;
+import com.techstud.schedule_university.auth.exception.UserExistsException;
 import com.techstud.schedule_university.auth.repository.RoleRepository;
 import com.techstud.schedule_university.auth.repository.UniversityRepository;
 import com.techstud.schedule_university.auth.repository.UserRepository;
 import com.techstud.schedule_university.auth.security.TokenService;
 import com.techstud.schedule_university.auth.service.UserFactory;
 import com.techstud.schedule_university.auth.service.impl.RegistrationServiceImpl;
+import jakarta.validation.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -26,8 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RegistrationServiceImplTest {
@@ -121,5 +122,53 @@ class RegistrationServiceImplTest {
         assertTrue(savedRefreshToken.getExpiryDate().isBefore(Instant.now().plus(7210, ChronoUnit.SECONDS)));
 
         verify(jwtProperties).getRefreshTokenExpiration();
+    }
+
+    @Test
+    void registerWithExistingUser_ShouldThrowUserExistsException() {
+        RegisterDTO registerDto = new RegisterDTO(
+                "existingUser", "fullName", "pass",
+                "exist@mail.com", "+123456789", "Group1", "University1"
+        );
+
+        when(userRepository.existsByUniqueFields(anyString(), anyString(), anyString()))
+                .thenReturn(true);
+
+        assertThrows(UserExistsException.class,
+                () -> registrationService.processRegister(registerDto));
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void registerWithInvalidEmail_ShouldThrowValidationException() {
+        RegisterDTO registerDto = new RegisterDTO(
+                "user", "fullName", "pass",
+                "invalid-email", "+123456789", "Group1", "University1"
+        );
+
+        assertThrows(ConstraintViolationException.class,
+                () -> validateRegisterDTO(registerDto));
+    }
+
+    @Test
+    void registerWithShortPassword_ShouldThrowValidationException() {
+        RegisterDTO registerDto = new RegisterDTO(
+                "user", "fullName", "123",
+                "valid@mail.com", "+123456789", "Group1", "University1"
+        );
+
+        assertThrows(ConstraintViolationException.class,
+                () -> validateRegisterDTO(registerDto));
+    }
+
+    private void validateRegisterDTO(RegisterDTO dto) {
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        Validator validator = factory.getValidator();
+        Set<ConstraintViolation<RegisterDTO>> violations = validator.validate(dto);
+
+        if (!violations.isEmpty()) {
+            throw new ConstraintViolationException(violations);
+        }
     }
 }

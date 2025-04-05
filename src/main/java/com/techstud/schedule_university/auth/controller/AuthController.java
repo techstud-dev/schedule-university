@@ -1,5 +1,6 @@
 package com.techstud.schedule_university.auth.controller;
 
+import com.techstud.schedule_university.auth.dto.ApiRequest;
 import com.techstud.schedule_university.auth.dto.request.LoginDTO;
 import com.techstud.schedule_university.auth.dto.request.RefreshTokenRequest;
 import com.techstud.schedule_university.auth.dto.request.RegisterDTO;
@@ -106,36 +107,48 @@ public class AuthController {
             }
     )
     @PostMapping("/login")
-    public ResponseEntity<SuccessAuthenticationDTO> login(@RequestBody @Valid LoginDTO dto) throws Exception {
-        log.info("Incoming login request, id: {}", dto.requestId());
-        SuccessAuthenticationDTO response = loginService.processLogin(dto);
+    public ResponseEntity<SuccessAuthenticationDTO> login(
+            @RequestBody @Valid ApiRequest<@Valid LoginDTO> dto) throws Exception {
+        log.info("Incoming login request, id: {}", dto.metadata().requestId());
+        SuccessAuthenticationDTO response = loginService.processLogin(dto.data());
 
         List<ResponseCookie> cookies = cookieUtil.createAuthCookies(
                 response.token(),
                 response.refreshToken()
         );
 
-        log.info("Outgoing login response, id: {}", dto.requestId());
+        log.info("Outgoing login response, id: {}", dto.metadata().requestId());
         return responseUtil.okWithCookies(response, cookies.toArray(ResponseCookie[]::new));
     }
 
     @Operation(
             summary = "Регистрация нового пользователя",
             description = """
-            Регистрирует нового пользователя в системе с указанными учетными данными.
-            После успешной регистрации возвращает JWT токены доступа.
-            Пароль должен соответствовать требованиям безопасности.
-            """,
+        Регистрирует нового пользователя в системе с указанными учетными данными.
+        После успешной регистрации возвращает JWT токены доступа.
+        Пароль должен соответствовать требованиям безопасности.
+        """,
             tags = {"Authentication"},
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Все поля обязательны для заполнения",
+                    description = """
+            Все поля обязательны для заполнения.
+            Метаданные (metadata) генерируются автоматически при отсутствии.
+            """,
                     required = true,
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = RegisterDTO.class),
+                            schema = @Schema(implementation = ApiRequest.class),
                             examples = {
-                                    @ExampleObject(name = "Успешный запрос", value = AuthApiExamples.REGISTER_EXAMPLE),
-                                    @ExampleObject(name = "Неверный запрос", value = AuthApiExamples.REGISTER_BAD_EXAMPLE)
+                                    @ExampleObject(
+                                            name = "Успешный запрос",
+                                            value = AuthApiExamples.REGISTER_EXAMPLE,
+                                            description = "Пример с автоматически сгенерированными метаданными"
+                                    ),
+                                    @ExampleObject(
+                                            name = "Неверный запрос",
+                                            value = AuthApiExamples.REGISTER_BAD_EXAMPLE,
+                                            description = "Пример с ошибками валидации в данных"
+                                    )
                             }
                     )
             ),
@@ -166,7 +179,10 @@ public class AuthController {
                             description = "Некорректные данные запроса",
                             content = @Content(
                                     mediaType = "application/json",
-                                    examples = @ExampleObject(value = AuthApiExamples.REGISTER400_RESPONSE)
+                                    examples = @ExampleObject(
+                                            value = AuthApiExamples.REGISTER400_RESPONSE,
+                                            description = "Ошибки валидации в полях данных"
+                                    )
                             )
                     ),
                     @ApiResponse(
@@ -188,16 +204,19 @@ public class AuthController {
             }
     )
     @PostMapping("/register")
-    public ResponseEntity<SuccessAuthenticationDTO> register(@RequestBody @Valid RegisterDTO dto) throws Exception {
-        log.info("Incoming register request, username: {}", dto.username());
-        SuccessAuthenticationDTO response = registrationService.processRegister(dto);
+    public ResponseEntity<SuccessAuthenticationDTO> register(
+            @RequestBody @Valid ApiRequest<@Valid RegisterDTO> dto) throws Exception {
+        log.info("Incoming register request, username: {}, request id: {}",
+                dto.data().username(), dto.metadata().requestId());
+        SuccessAuthenticationDTO response = registrationService.processRegister(dto.data());
 
         List<ResponseCookie> cookies = cookieUtil.createAuthCookies(
                 response.token(),
                 response.refreshToken()
         );
 
-        log.info("Outgoing register response, username {}", dto.username());
+        log.info("Outgoing register response, username {}, request id: {}",
+                dto.data().username(), dto.metadata().requestId());
         return responseUtil.okWithCookies(response, cookies.toArray(ResponseCookie[]::new));
     }
 
@@ -246,13 +265,14 @@ public class AuthController {
             }
     )
     @PostMapping("/refresh-token")
-    public ResponseEntity<String> refreshToken(@RequestBody @Valid RefreshTokenRequest dto) throws Exception {
-        log.info("Incoming refresh token request, id: {}", dto.requestId());
-        String accessToken = refreshTokenService.refreshToken(dto.refreshToken());
+    public ResponseEntity<String> refreshToken(
+            @RequestBody @Valid ApiRequest<@Valid RefreshTokenRequest> dto) throws Exception {
+        log.info("Incoming refresh token request, id: {}", dto.metadata().requestId());
+        String accessToken = refreshTokenService.refreshToken(dto.data().refreshToken());
 
         ResponseCookie accessTokenCookie = cookieUtil.createAccessTokenCookie(accessToken);
 
-        log.info("Outgoing refresh token response, id: {}", dto.requestId());
+        log.info("Outgoing refresh token response, id: {}", dto.metadata().requestId());
         return responseUtil.okWithCookies(accessToken, accessTokenCookie);
     }
 }

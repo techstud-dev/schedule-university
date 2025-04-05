@@ -5,8 +5,10 @@ public class AuthApiExamples {
     // Login examples
     public static final String LOGIN_EXAMPLE = """
         {
-            "identificationField": "user@example.com",
-            "password": "SecurePass123!"
+           "data": {
+              "identificationField": "user@example.com",
+              "password": "SecurePass123!"
+           }
         }
         """;
 
@@ -44,13 +46,15 @@ public class AuthApiExamples {
     // Register examples
     public static final String REGISTER_EXAMPLE = """
         {
-            "username": "new_user",
-            "fullName": "Иван Иванов",
-            "password": "SecurePass123!",
-            "email": "user@example.com",
-            "phoneNumber": "+1234567890",
-            "groupNumber": "ГР-01",
-            "university": "Мой Университет"
+           "data": {
+               "username": "new_user",
+               "fullName": "Иван Иванов",
+               "password": "SecurePass123!",
+               "email": "user@example.com",
+               "phoneNumber": "+1234567890",
+               "groupNumber": "ГР-01",
+               "university": "Мой Университет"
+           }
         }
         """;
 
@@ -77,9 +81,13 @@ public class AuthApiExamples {
         {
             "systemName": "auth-service",
             "applicationName": "university-auth",
-            "error": "Validation failed"
-        }
-        """;
+            "timestamp": "2024-01-15T12:34:56.789",
+            "errors": [
+                "data.username: Username cannot be blank",
+                "data.password: Password must be at least 8 characters long",
+                "data.email: Email format is invalid"
+            ]
+        }""";
 
     public static final String REGISTER409_RESPONSE = """
         {
@@ -100,7 +108,9 @@ public class AuthApiExamples {
     // Refresh token examples
     public static final String REFRESH_TOKEN_EXAMPLE = """
         {
-            "refreshToken": "your_refresh_token"
+           "data": {
+              "refreshToken": "your_refresh_token"
+           }
         }
         """;
 

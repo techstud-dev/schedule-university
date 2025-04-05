@@ -11,9 +11,8 @@ import lombok.Setter;
 
 import java.time.Instant;
 
-@Getter
-@Setter
 @Embeddable
+@Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class RefreshToken {

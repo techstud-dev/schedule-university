@@ -1,0 +1,59 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2025.05.04-0001
+      author: Eldar Khalilov
+      changes:
+        - createTable:
+            schemaName: auth
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            schemaName: auth
+            tableName: user_roles
+            columnNames: user_id, role_id
+            constraintName: pk_user_roles
+
+        - addForeignKeyConstraint:
+            baseTableSchemaName: auth
+            baseTableName: user_roles
+            baseColumnNames: user_id
+            constraintName: fk_user_roles_user
+            referencedTableSchemaName: auth
+            referencedTableName: users
+            referencedColumnNames: id
+
+        - addForeignKeyConstraint:
+            baseTableSchemaName: auth
+            baseTableName: user_roles
+            baseColumnNames: role_id
+            constraintName: fk_user_roles_role
+            referencedTableSchemaName: auth
+            referencedTableName: roles
+            referencedColumnNames: id
+
+        - createIndex:
+            schemaName: auth
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+            indexName: idx_user_roles_user
+
+        - createIndex:
+            schemaName: auth
+            tableName: user_roles
+            columns:
+              - column:
+                  name: role_id
+            indexName: idx_user_roles_role

@@ -8,12 +8,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.validation.method.ParameterValidationResult;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @ControllerAdvice
 @Slf4j
@@ -33,6 +39,37 @@ public class GlobalExceptionHandler {
         response.put("error", e.getMessage());
         log.error("Unhandled exception", e);
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleHandlerMethodValidationException(
+            HandlerMethodValidationException ex) {
+
+        List<String> errors = ex.getAllErrors().stream()
+                .map(error -> {
+                    if (error instanceof ParameterValidationResult pvr) {
+                        return pvr.getResolvableErrors().stream()
+                                .map(oe -> String.format("%s: %s",
+                                        pvr.getMethodParameter().getParameterName(),
+                                        oe.getDefaultMessage()))
+                                .collect(Collectors.joining(", "));
+                    }
+                    return error.getDefaultMessage();
+                })
+                .collect(Collectors.toList());
+
+        return getMapResponseEntity(errors);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleMethodArgumentNotValidException(
+            MethodArgumentNotValidException ex) {
+
+        List<String> errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> String.format("%s: %s", error.getField(), error.getDefaultMessage()))
+                .collect(Collectors.toList());
+
+        return getMapResponseEntity(errors);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -77,5 +114,15 @@ public class GlobalExceptionHandler {
         response.put("error", e.getMessage());
         log.error("Jwt token is invalid", e);
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
+    private ResponseEntity<Map<String, Object>> getMapResponseEntity(List<String> errors) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("systemName", systemName);
+        response.put("applicationName", applicationName);
+        response.put("timestamp", LocalDateTime.now());
+        response.put("errors", errors);
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

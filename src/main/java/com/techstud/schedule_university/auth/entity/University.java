@@ -1,16 +1,14 @@
 package com.techstud.schedule_university.auth.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Builder
+@Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "universities", schema = "auth")
