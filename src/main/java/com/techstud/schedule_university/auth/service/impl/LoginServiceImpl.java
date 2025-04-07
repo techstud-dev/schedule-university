@@ -1,6 +1,6 @@
 package com.techstud.schedule_university.auth.service.impl;
 
-import com.techstud.schedule_university.auth.config.JwtProperties;
+import com.techstud.schedule_university.auth.config.TokenProperties;
 import com.techstud.schedule_university.auth.dto.request.LoginDTO;
 import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
 import com.techstud.schedule_university.auth.entity.RefreshToken;
@@ -19,17 +19,21 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+/**
+ * Сервис аутентификации пользователей
+ *
+ * <p>Обрабатывает процесс входа в систему и выдачу токенов</p>
+ */
 @Slf4j
 @Service
 public class LoginServiceImpl implements LoginService {
-
-    @Qualifier("JwtProperties")
-    private final JwtProperties properties;
+    @Qualifier("BeanTokenPropertiesBug")
+    private final TokenProperties properties;
     private final UserRepository userRepository;
     private final TokenService tokenService;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    public LoginServiceImpl(@Qualifier("JwtProperties") JwtProperties properties,
+    public LoginServiceImpl(@Qualifier("BeanTokenPropertiesBug") TokenProperties properties,
                             UserRepository userRepository, TokenService tokenService,
                             BCryptPasswordEncoder passwordEncoder) {
         this.properties = properties;
@@ -38,23 +42,38 @@ public class LoginServiceImpl implements LoginService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Выполняет аутентификацию пользователя
+     *
+     * @param loginDto Данные для входа
+     * @return DTO с токенами доступа
+     * @throws UserNotFoundException Если пользователь не найден
+     * @throws BadCredentialsException Если неверный пароль
+     */
     @Override
     @Transactional
     public SuccessAuthenticationDTO processLogin(LoginDTO loginDto) throws Exception {
         User user = findUserByIdentificationField(loginDto.identificationField());
         validatePassword(loginDto.password(), user.getPassword());
 
-        String accessToken = tokenService.generateToken(user);
-        String refreshToken = tokenService.generateRefreshToken(user);
+        SuccessAuthenticationDTO successAuth = tokenService.generateTokens(user);
 
-        user.setRefreshToken(new RefreshToken(refreshToken, Instant.now().plus(properties.getRefreshTokenExpiration(),
+        user.setRefreshToken(new RefreshToken(successAuth.refreshToken(),
+                Instant.now().plus(properties.getRefreshTokenExpiration(),
                 ChronoUnit.SECONDS)));
         userRepository.save(user);
 
         log.info("User {} logged in successfully", user.getUsername());
-        return new SuccessAuthenticationDTO(accessToken, refreshToken);
+        return new SuccessAuthenticationDTO(successAuth.token(), successAuth.refreshToken());
     }
 
+    /**
+     * Ищет в базе данных юзеров с похожим уникальным полем
+     *
+     * @param field уникальное поле
+     * @return возвращает найденного пользователя
+     * @throws Exception если не нашли бросает NotFound
+     */
     private User findUserByIdentificationField(String field) throws Exception {
         return userRepository.findByUsernameIgnoreCase(field)
                 .or(() -> userRepository.findByEmailIgnoreCase(field))
@@ -62,6 +81,13 @@ public class LoginServiceImpl implements LoginService {
                 .orElseThrow(UserNotFoundException::new);
     }
 
+    /**
+     * Валидирует пароль
+     *
+     * @param rawPassword пароль, пришедший в заросе на логин
+     * @param encodedPassword пароль, который был найден в бд (хешированный)
+     * @throws Exception бросает исключение если пароль не подошёл
+     */
     private void validatePassword(String rawPassword, String encodedPassword) throws Exception {
         if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
             throw new BadCredentialsException("Invalid password.");

@@ -1,20 +1,17 @@
 package com.techstud.schedule_university.auth;
 
-import com.techstud.schedule_university.auth.config.JwtProperties;
+import com.techstud.schedule_university.auth.config.TokenProperties;
 import com.techstud.schedule_university.auth.dto.request.RegisterDTO;
 import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
+import com.techstud.schedule_university.auth.entity.PendingRegistration;
 import com.techstud.schedule_university.auth.entity.RefreshToken;
-import com.techstud.schedule_university.auth.entity.Role;
-import com.techstud.schedule_university.auth.entity.University;
 import com.techstud.schedule_university.auth.entity.User;
 import com.techstud.schedule_university.auth.exception.UserExistsException;
-import com.techstud.schedule_university.auth.repository.RoleRepository;
-import com.techstud.schedule_university.auth.repository.UniversityRepository;
 import com.techstud.schedule_university.auth.repository.UserRepository;
 import com.techstud.schedule_university.auth.security.TokenService;
-import com.techstud.schedule_university.auth.service.UserFactory;
+import com.techstud.schedule_university.auth.service.EmailConfirmationService;
+import com.techstud.schedule_university.auth.service.UserCreationService;
 import com.techstud.schedule_university.auth.service.impl.RegistrationServiceImpl;
-import jakarta.validation.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -24,151 +21,145 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Optional;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class RegistrationServiceImplTest {
+public class RegistrationServiceImplTest {
 
     @Mock
-    private UserRepository userRepository;
+    private TokenProperties properties;
 
     @Mock
-    private RoleRepository roleRepository;
+    private EmailConfirmationService emailConfirmationService;
 
     @Mock
-    private UserFactory userFactory;
+    private UserCreationService userCreationService;
+
+    @Mock
+    private UserRepository repository;
 
     @Mock
     private TokenService tokenService;
 
-    @Mock
-    private UniversityRepository universityRepository;
-
-    @Mock
-    private JwtProperties jwtProperties;
-
     @InjectMocks
-    private RegistrationServiceImpl registrationService;
+    private RegistrationServiceImpl service;
 
     @Test
-    void shouldRegisterUserSuccessfully() throws Exception {
-        RegisterDTO registerDto = new RegisterDTO(
-                "username",
-                "Full Name",
-                "Password123",
-                "email@example.com",
-                "1234567890",
-                "Group-1",
-                "Some University"
+    void startRegistration_WhenUserExists_ThrowsException() {
+        // Arrange
+        RegisterDTO dto = new RegisterDTO(
+                "testUser", "test@mail.com", "+123456789",
+                "password", "Test User", "Group-1", "University"
         );
 
-        University university = new University("Some University");
-        university.setId(1L);
+        when(repository.existsByUniqueFields(
+                dto.username(),
+                dto.email(),
+                dto.phoneNumber()
+        )).thenReturn(true);
 
-        Role userRole = new Role("USER");
-        userRole.setId(1L);
-
-        User user = User.builder()
-                .username(registerDto.username())
-                .fullName(registerDto.fullName())
-                .password("EncryptedPassword123")
-                .email(registerDto.email())
-                .phoneNumber(registerDto.phoneNumber())
-                .groupNumber(registerDto.groupNumber())
-                .university(university)
-                .roles(Set.of(userRole))
-                .build();
-
-        String accessToken = "access-token";
-        String refreshToken = "refresh-token";
-
-        when(jwtProperties.getRefreshTokenExpiration()).thenReturn(7200L);
-
-        when(universityRepository.findByName(registerDto.university()))
-                .thenReturn(Optional.of(university));
-        when(roleRepository.findByName("USER"))
-                .thenReturn(Optional.of(userRole));
-        when(userFactory.createUser(
-                registerDto.username(),
-                registerDto.fullName(),
-                registerDto.password(),
-                registerDto.email(),
-                registerDto.phoneNumber(),
-                registerDto.groupNumber()
-        )).thenReturn(user);
-        when(tokenService.generateToken(user))
-                .thenReturn(accessToken);
-        when(tokenService.generateRefreshToken(user))
-                .thenReturn(refreshToken);
-
-        SuccessAuthenticationDTO result = registrationService.processRegister(registerDto);
-
-        verify(userRepository).save(user);
-        assertEquals(accessToken, result.token());
-        assertEquals(refreshToken, result.refreshToken());
-
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-
-        RefreshToken savedRefreshToken = userCaptor.getValue().getRefreshToken();
-        assertNotNull(savedRefreshToken);
-        assertEquals(refreshToken, savedRefreshToken.getRefreshToken());
-
-        assertTrue(savedRefreshToken.getExpiryDate().isAfter(Instant.now().plus(7190, ChronoUnit.SECONDS)));
-        assertTrue(savedRefreshToken.getExpiryDate().isBefore(Instant.now().plus(7210, ChronoUnit.SECONDS)));
-
-        verify(jwtProperties).getRefreshTokenExpiration();
-    }
-
-    @Test
-    void registerWithExistingUser_ShouldThrowUserExistsException() {
-        RegisterDTO registerDto = new RegisterDTO(
-                "existingUser", "fullName", "pass",
-                "exist@mail.com", "+123456789", "Group1", "University1"
-        );
-
-        when(userRepository.existsByUniqueFields(anyString(), anyString(), anyString()))
-                .thenReturn(true);
-
+        // Act & Assert
         assertThrows(UserExistsException.class,
-                () -> registrationService.processRegister(registerDto));
-
-        verify(userRepository, never()).save(any());
+                () -> service.startRegistration(dto)
+        );
     }
 
     @Test
-    void registerWithInvalidEmail_ShouldThrowValidationException() {
-        RegisterDTO registerDto = new RegisterDTO(
-                "user", "fullName", "pass",
-                "invalid-email", "+123456789", "Group1", "University1"
-        );
+    void startRegistration_WhenNewUser_CallsConfirmationService() throws Exception {
+        // Arrange
+        RegisterDTO dto = createValidRegisterDTO();
+        when(repository.existsByUniqueFields(any(), any(), any())).thenReturn(false);
 
-        assertThrows(ConstraintViolationException.class,
-                () -> validateRegisterDTO(registerDto));
+        // Act
+        service.startRegistration(dto);
+
+        // Assert
+        verify(emailConfirmationService).initiateConfirmation(dto);
     }
 
     @Test
-    void registerWithShortPassword_ShouldThrowValidationException() {
-        RegisterDTO registerDto = new RegisterDTO(
-                "user", "fullName", "123",
-                "valid@mail.com", "+123456789", "Group1", "University1"
+    void completeRegistration_ValidCode_ReturnsTokens() throws Exception {
+        // Arrange
+        String code = "123456";
+        PendingRegistration pending = createPendingRegistration();
+        User mockUser = new User();
+        SuccessAuthenticationDTO tokens = new SuccessAuthenticationDTO("access", "refresh");
+
+        when(emailConfirmationService.validateCode(code)).thenReturn(pending);
+        when(userCreationService.createPendingUser(pending)).thenReturn(mockUser);
+        when(tokenService.generateTokens(mockUser)).thenReturn(tokens);
+        when(properties.getRefreshTokenExpiration()).thenReturn(3600L);
+
+        // Act
+        SuccessAuthenticationDTO result = service.completeRegistration(code);
+
+        // Assert
+        assertAll(
+                () -> assertEquals(tokens.token(), result.token()),
+                () -> assertEquals(tokens.refreshToken(), result.refreshToken())
         );
 
-        assertThrows(ConstraintViolationException.class,
-                () -> validateRegisterDTO(registerDto));
+        verify(tokenService).generateTokens(mockUser);
     }
 
-    private void validateRegisterDTO(RegisterDTO dto) {
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        Validator validator = factory.getValidator();
-        Set<ConstraintViolation<RegisterDTO>> violations = validator.validate(dto);
+    @Test
+    void completeRegistration_SavesUserWithRefreshToken() throws Exception {
+        // Arrange
+        String code = "123456";
+        String refreshToken = "refresh_token";
+        Instant expectedExpiration = Instant.now().plus(3600, ChronoUnit.SECONDS);
 
-        if (!violations.isEmpty()) {
-            throw new ConstraintViolationException(violations);
-        }
+        PendingRegistration pending = createPendingRegistration();
+        User mockUser = new User();
+        SuccessAuthenticationDTO tokens = new SuccessAuthenticationDTO("access", refreshToken);
+
+        when(emailConfirmationService.validateCode(code)).thenReturn(pending);
+        when(userCreationService.createPendingUser(pending)).thenReturn(mockUser);
+        when(tokenService.generateTokens(mockUser)).thenReturn(tokens);
+        when(properties.getRefreshTokenExpiration()).thenReturn(3600L);
+
+        // Act
+        service.completeRegistration(code);
+
+        // Assert
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(repository).save(userCaptor.capture());
+
+        RefreshToken savedToken = userCaptor.getValue().getRefreshToken();
+        assertAll(
+                () -> assertEquals(refreshToken, savedToken.getRefreshToken()),
+                () -> assertTrue(savedToken.getExpiryDate().isAfter(Instant.now())),
+                () -> assertTrue(
+                        ChronoUnit.SECONDS.between(Instant.now(), savedToken.getExpiryDate()) <= 3600
+                )
+        );
+    }
+
+    private RegisterDTO createValidRegisterDTO() {
+        return new RegisterDTO(
+                "testUser",
+                "test@mail.com",
+                "+123456789",
+                "password",
+                "Test User",
+                "Group-1",
+                "University"
+        );
+    }
+
+    private PendingRegistration createPendingRegistration() {
+        return PendingRegistration.builder()
+                .username("testUser")
+                .email("test@mail.com")
+                .phoneNumber("+123456789")
+                .password("password")
+                .fullName("Test User")
+                .groupNumber("Group-1")
+                .university("University")
+                .build();
     }
 }

@@ -1,10 +1,14 @@
 package com.techstud.schedule_university.auth.controller;
 
+import com.techstud.schedule_university.auth.aspect.RateLimitKeyType;
+import com.techstud.schedule_university.auth.aspect.RateLimited;
 import com.techstud.schedule_university.auth.dto.ApiRequest;
+import com.techstud.schedule_university.auth.dto.request.ConfirmRegisterRequest;
 import com.techstud.schedule_university.auth.dto.request.LoginDTO;
 import com.techstud.schedule_university.auth.dto.request.RefreshTokenRequest;
 import com.techstud.schedule_university.auth.dto.request.RegisterDTO;
 import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
+import com.techstud.schedule_university.auth.exception.UserExistsException;
 import com.techstud.schedule_university.auth.service.LoginService;
 import com.techstud.schedule_university.auth.service.RefreshTokenService;
 import com.techstud.schedule_university.auth.service.RegistrationService;
@@ -17,6 +21,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -106,33 +111,29 @@ public class AuthController {
                     )
             }
     )
+    @RateLimited(limit = 3, interval = 100, keyType = RateLimitKeyType.USER_ID)
     @PostMapping("/login")
     public ResponseEntity<SuccessAuthenticationDTO> login(
             @RequestBody @Valid ApiRequest<@Valid LoginDTO> dto) throws Exception {
         log.info("Incoming login request, id: {}", dto.metadata().requestId());
         SuccessAuthenticationDTO response = loginService.processLogin(dto.data());
-
-        List<ResponseCookie> cookies = cookieUtil.createAuthCookies(
-                response.token(),
-                response.refreshToken()
-        );
-
+        List<ResponseCookie> cookies = cookieUtil.createAuthCookies(response.token(), response.refreshToken());
         log.info("Outgoing login response, id: {}", dto.metadata().requestId());
         return responseUtil.okWithCookies(response, cookies.toArray(ResponseCookie[]::new));
     }
 
     @Operation(
-            summary = "Регистрация нового пользователя",
+            summary = "Инициация регистрации",
             description = """
-        Регистрирует нового пользователя в системе с указанными учетными данными.
-        После успешной регистрации возвращает JWT токены доступа.
-        Пароль должен соответствовать требованиям безопасности.
+        Начинает процесс регистрации нового пользователя./
+        Отправляет код подтверждения на указанный email.
+        Лимит: 10 запросов в 30 секунд с одного IP.
         """,
             tags = {"Authentication"},
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = """
             Все поля обязательны для заполнения.
-            Метаданные (metadata) генерируются автоматически при отсутствии.
+            Пароль должен содержать минимум 8 символов, включая цифры и буквы.
             """,
                     required = true,
                     content = @Content(
@@ -140,14 +141,12 @@ public class AuthController {
                             schema = @Schema(implementation = ApiRequest.class),
                             examples = {
                                     @ExampleObject(
-                                            name = "Успешный запрос",
-                                            value = AuthApiExamples.REGISTER_EXAMPLE,
-                                            description = "Пример с автоматически сгенерированными метаданными"
+                                            name = "Пример корректного запроса",
+                                            value = AuthApiExamples.REGISTER_EXAMPLE
                                     ),
                                     @ExampleObject(
-                                            name = "Неверный запрос",
-                                            value = AuthApiExamples.REGISTER_BAD_EXAMPLE,
-                                            description = "Пример с ошибками валидации в данных"
+                                            name = "Пример невалидного запроса",
+                                            value = AuthApiExamples.REGISTER_BAD_EXAMPLE
                                     )
                             }
                     )
@@ -155,7 +154,78 @@ public class AuthController {
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Пользователь успешно зарегистрирован",
+                            description = "Код подтверждения отправлен",
+                            content = @Content(
+                                    mediaType = "text/plain",
+                                    examples = @ExampleObject(value = "Sent confirmation code.")
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Ошибка валидации данных",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    examples = @ExampleObject(value = AuthApiExamples.REGISTER400_RESPONSE))
+                    ),
+                    @ApiResponse(
+                            responseCode = "409",
+                            description = "Пользователь уже существует",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    examples = @ExampleObject(value = AuthApiExamples.REGISTER409_RESPONSE))
+                    ),
+                    @ApiResponse(
+                            responseCode = "429",
+                            description = "Превышен лимит запросов"
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "Ошибка сервера",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    examples = @ExampleObject(value = AuthApiExamples.REGISTER500_RESPONSE))
+                    )
+            }
+    )
+    @RateLimited(limit = 10, interval = 30, keyType = RateLimitKeyType.IP)
+    @PostMapping("/register")
+    public ResponseEntity<String> register(
+            @RequestBody @Valid ApiRequest<@Valid RegisterDTO> request)
+            throws MessagingException, UserExistsException {
+        log.info("Incoming register request, id: {}", request.metadata().requestId());
+        registrationService.startRegistration(request.data());
+        log.info("Outgoing register response, id: {}", request.metadata().requestId());
+        return ResponseEntity.ok("Sent confirmation code.");
+    }
+
+    @Operation(
+            summary = "Подтверждение регистрации",
+            description = """
+        Завершает процесс регистрации с использованием кода подтверждения.
+        Возвращает JWT токены доступа и обновления.
+        Лимит: 5 запросов в 30 секунд с одного IP.
+        """,
+            tags = {"Authentication"},
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Код подтверждения из email",
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiRequest.class),
+                            examples = @ExampleObject(
+                                    value = """
+                    {
+                        "data": {
+                            "code": "123456"
+                        }
+                    }"""
+                            )
+                    )
+            ),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Успешная регистрация",
                             content = @Content(
                                     mediaType = "application/json",
                                     schema = @Schema(implementation = SuccessAuthenticationDTO.class),
@@ -164,59 +234,51 @@ public class AuthController {
                             headers = {
                                     @Header(
                                             name = "Set-Cookie",
-                                            description = "Access token cookie",
-                                            schema = @Schema(type = "string", example = AuthApiExamples.ACCESS_TOKEN_COOKIE)
+                                            description = "Access token",
+                                            schema = @Schema(example = AuthApiExamples.ACCESS_TOKEN_COOKIE)
                                     ),
                                     @Header(
                                             name = "Set-Cookie",
-                                            description = "Refresh token cookie",
-                                            schema = @Schema(type = "string", example = AuthApiExamples.REFRESH_TOKEN_COOKIE)
+                                            description = "Refresh token",
+                                            schema = @Schema(example = AuthApiExamples.REFRESH_TOKEN_COOKIE)
                                     )
                             }
                     ),
                     @ApiResponse(
                             responseCode = "400",
-                            description = "Некорректные данные запроса",
+                            description = "Неверный код подтверждения",
                             content = @Content(
                                     mediaType = "application/json",
                                     examples = @ExampleObject(
-                                            value = AuthApiExamples.REGISTER400_RESPONSE,
-                                            description = "Ошибки валидации в полях данных"
+                                            value = """
+                        {
+                            "error": "Invalid confirmation code"
+                        }"""
                                     )
                             )
                     ),
                     @ApiResponse(
                             responseCode = "409",
-                            description = "Конфликт данных",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    examples = @ExampleObject(value = AuthApiExamples.REGISTER409_RESPONSE)
-                            )
+                            description = "Конфликт данных пользователя"
+                    ),
+                    @ApiResponse(
+                            responseCode = "429",
+                            description = "Превышен лимит запросов"
                     ),
                     @ApiResponse(
                             responseCode = "500",
-                            description = "Внутренняя ошибка сервера",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    examples = @ExampleObject(value = AuthApiExamples.REGISTER500_RESPONSE)
-                            )
+                            description = "Ошибка сервера"
                     )
             }
     )
-    @PostMapping("/register")
-    public ResponseEntity<SuccessAuthenticationDTO> register(
-            @RequestBody @Valid ApiRequest<@Valid RegisterDTO> dto) throws Exception {
-        log.info("Incoming register request, username: {}, request id: {}",
-                dto.data().username(), dto.metadata().requestId());
-        SuccessAuthenticationDTO response = registrationService.processRegister(dto.data());
-
-        List<ResponseCookie> cookies = cookieUtil.createAuthCookies(
-                response.token(),
-                response.refreshToken()
-        );
-
-        log.info("Outgoing register response, username {}, request id: {}",
-                dto.data().username(), dto.metadata().requestId());
+    @RateLimited(limit = 10, interval = 30, keyType = RateLimitKeyType.IP)
+    @PostMapping("/confirm")
+    public ResponseEntity<SuccessAuthenticationDTO> confirm(
+            @RequestBody @Valid ApiRequest<@Valid ConfirmRegisterRequest> dto) throws Exception {
+        log.info("Incoming register request, request id: {}", dto.metadata().requestId());
+        SuccessAuthenticationDTO response = registrationService.completeRegistration(dto.data().code());
+        List<ResponseCookie> cookies = cookieUtil.createAuthCookies(response.token(), response.refreshToken());
+        log.info("Outgoing register response, request id: {}", dto.metadata().requestId());
         return responseUtil.okWithCookies(response, cookies.toArray(ResponseCookie[]::new));
     }
 
@@ -264,14 +326,13 @@ public class AuthController {
                     )
             }
     )
+    @RateLimited(limit = 10, interval = 30, keyType = RateLimitKeyType.USER_ID)
     @PostMapping("/refresh-token")
     public ResponseEntity<String> refreshToken(
             @RequestBody @Valid ApiRequest<@Valid RefreshTokenRequest> dto) throws Exception {
         log.info("Incoming refresh token request, id: {}", dto.metadata().requestId());
         String accessToken = refreshTokenService.refreshToken(dto.data().refreshToken());
-
         ResponseCookie accessTokenCookie = cookieUtil.createAccessTokenCookie(accessToken);
-
         log.info("Outgoing refresh token response, id: {}", dto.metadata().requestId());
         return responseUtil.okWithCookies(accessToken, accessTokenCookie);
     }

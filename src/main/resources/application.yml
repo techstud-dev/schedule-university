@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: Schedule University
+    systemName: tchs
+    version: 0.0.1-SNAPSHOT
+
+  mail:
+    host: smtp.yandex.ru
+    port: 587
+    username: ${SCH_USERNAME}
+    password: ${SCH_PASSWORD}
+    sender: ${SCH_SENDER}
+    properties:
+      mail:
+        type:
+          debug: false
+        smtp:
+          auth: true
+        starttls:
+          enable: true
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/schedule_university}
+    username: ${DB_USER:abuser}
+    password: ${DB_PASSWORD:abuser}
+
+  jpa:
+    properties:
+      hibernate:
+        hbm2ddl:
+          create_namespaces: true
+
+    hibernate:
+      ddl-auto: update
+
+    open-in-view: false
+    show-sql: true
+
+  liquibase:
+    enabled: false
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${SCH_SECRET}
+  auth-issuer: sch-auth
+  main-audience: sch-main
+  access-token-expiration: 3600
+  refresh-token-expiration: 7200
+
+logging:
+  config: classpath:log4j2-prod.xml
+  level:
+    org:
+      hibernate:
+        SQL: DEBUG

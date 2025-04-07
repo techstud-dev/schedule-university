@@ -1,6 +1,6 @@
 package com.techstud.schedule_university.auth;
 
-import com.techstud.schedule_university.auth.config.JwtProperties;
+import com.techstud.schedule_university.auth.config.TokenProperties;
 import com.techstud.schedule_university.auth.dto.request.LoginDTO;
 import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
 import com.techstud.schedule_university.auth.entity.RefreshToken;
@@ -41,7 +41,7 @@ class LoginServiceImplTest {
     private BCryptPasswordEncoder passwordEncoder;
 
     @Mock
-    private JwtProperties jwtProperties;
+    private TokenProperties jwtProperties;
 
     @InjectMocks
     private LoginServiceImpl loginService;
@@ -58,10 +58,8 @@ class LoginServiceImplTest {
                 .thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password", "hashedPassword"))
                 .thenReturn(true);
-        when(tokenService.generateToken(eq(user)))
-                .thenReturn("access-token");
-        when(tokenService.generateRefreshToken(eq(user)))
-                .thenReturn("new-refresh-token");
+        when(tokenService.generateTokens(eq(user)))
+                .thenReturn(new SuccessAuthenticationDTO("access-token", "new-refresh-token"));
 
         SuccessAuthenticationDTO response = loginService.processLogin(loginDto);
 

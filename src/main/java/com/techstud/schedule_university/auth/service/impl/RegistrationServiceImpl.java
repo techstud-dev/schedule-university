@@ -1,98 +1,102 @@
 package com.techstud.schedule_university.auth.service.impl;
 
-import com.techstud.schedule_university.auth.config.JwtProperties;
+import com.techstud.schedule_university.auth.config.TokenProperties;
 import com.techstud.schedule_university.auth.dto.request.RegisterDTO;
 import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
+import com.techstud.schedule_university.auth.entity.PendingRegistration;
 import com.techstud.schedule_university.auth.entity.RefreshToken;
-import com.techstud.schedule_university.auth.entity.Role;
-import com.techstud.schedule_university.auth.entity.University;
 import com.techstud.schedule_university.auth.entity.User;
+import com.techstud.schedule_university.auth.exception.InvalidCodeException;
 import com.techstud.schedule_university.auth.exception.UserExistsException;
-import com.techstud.schedule_university.auth.repository.RoleRepository;
-import com.techstud.schedule_university.auth.repository.UniversityRepository;
 import com.techstud.schedule_university.auth.repository.UserRepository;
 import com.techstud.schedule_university.auth.security.TokenService;
+import com.techstud.schedule_university.auth.service.EmailConfirmationService;
 import com.techstud.schedule_university.auth.service.RegistrationService;
-import com.techstud.schedule_university.auth.service.UserFactory;
-import lombok.extern.slf4j.Slf4j;
+import com.techstud.schedule_university.auth.service.UserCreationService;
+import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Set;
 
-@Slf4j
+/**
+ * Сервис для управления процессом регистрации пользователей
+ * <p>
+ * Обрабатывает двухэтапную регистрацию:
+ * 1. Инициирование регистрации с проверкой уникальности данных
+ * 2. Подтверждение регистрации с валидацией кода
+ * </p>
+ */
 @Service
 public class RegistrationServiceImpl implements RegistrationService {
-
-    @Qualifier("JwtProperties")
-    private final JwtProperties properties;
+    @Qualifier("BeanTokenPropertiesBug")
+    private final TokenProperties properties;
+    private final EmailConfirmationService emailConfirmationService;
+    private final UserCreationService userCreationService;
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final UserFactory userFactory;
     private final TokenService tokenService;
-    private final UniversityRepository universityRepository;
 
-    public RegistrationServiceImpl(@Qualifier("JwtProperties") JwtProperties properties, UserRepository userRepository,
-                                   RoleRepository roleRepository, UserFactory userFactory,
-                                   TokenService tokenService, UniversityRepository universityRepository) {
+    public RegistrationServiceImpl(@Qualifier("BeanTokenPropertiesBug") TokenProperties properties,
+                                   EmailConfirmationService emailConfirmationService,
+                                   UserCreationService userCreationService,
+                                   UserRepository userRepository, TokenService tokenService) {
         this.properties = properties;
+        this.emailConfirmationService = emailConfirmationService;
+        this.userCreationService = userCreationService;
         this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.userFactory = userFactory;
         this.tokenService = tokenService;
-        this.universityRepository = universityRepository;
     }
 
+    /**
+     * Начинает процесс регистрации нового пользователя
+     *
+     * @param dto DTO с данными для регистрации
+     * @throws UserExistsException если пользователь с такими данными уже существует
+     * @throws MessagingException при ошибке отправки email с кодом подтверждения
+     */
+    // В МИКРОСЕРВИСАХ ТУТ БУДЕТ КАФКА К СЕРВИСУ НОТИФИКАЦИЙ
     @Override
     @Transactional
-    public SuccessAuthenticationDTO processRegister(RegisterDTO registerDto) throws Exception {
-        validateUserUniqueness(registerDto);
-
-        University university = resolveUniversity(registerDto.university());
-        Role userRole = roleRepository.findByName("USER")
-                .orElseGet(() -> roleRepository.save(new Role("USER")));
-
-        User newUser = createAndSaveUser(registerDto, university, userRole);
-
-        String accessToken = tokenService.generateToken(newUser);
-        String refreshToken = tokenService.generateRefreshToken(newUser);
-
-        newUser.setRefreshToken(new RefreshToken(refreshToken, Instant.now().plus(properties.getRefreshTokenExpiration(),
-                ChronoUnit.SECONDS)));
-        userRepository.save(newUser);
-
-        log.info("User {} registered successfully", newUser.getUsername());
-        return new SuccessAuthenticationDTO(accessToken, refreshToken);
-    }
-
-    private University resolveUniversity(String universityName) {
-        return universityRepository.findByName(universityName)
-                .orElseGet(() -> universityRepository.save(new University(universityName)));
-    }
-
-    private User createAndSaveUser(RegisterDTO dto, University university, Role role) throws Exception {
-        User newUser = userFactory.createUser(
-                dto.username(),
-                dto.fullName(),
-                dto.password(),
-                dto.email(),
-                dto.phoneNumber(),
-                dto.groupNumber()
-        );
-        newUser.setUniversity(university);
-        newUser.setRoles(Set.of(role));
-        return newUser;
-    }
-
-    private void validateUserUniqueness(RegisterDTO registerDto) throws Exception {
-        if (userRepository.existsByUniqueFields(
-                registerDto.username(),
-                registerDto.email(),
-                registerDto.phoneNumber())) {
+    public void startRegistration(RegisterDTO dto) throws MessagingException, UserExistsException {
+        if (userRepository.existsByUniqueFields(dto.username(), dto.email(), dto.phoneNumber())) {
             throw new UserExistsException();
         }
+        emailConfirmationService.initiateConfirmation(dto);
+    }
+
+    /**
+     * Завершает процесс регистрации
+     *
+     * @param code Код подтверждения из email
+     * @return DTO с JWT токенами
+     * @throws InvalidCodeException при неверном или просроченном коде
+     * @throws UserExistsException при конфликте данных пользователя
+     */
+    // В МИКРОСЕРВИСАХ ТУТ БУДЕТ КАФКА К СЕРВИСУ НОТИФИКАЦИЙ
+    @Override
+    @Transactional
+    public SuccessAuthenticationDTO completeRegistration(String code)
+            throws InvalidCodeException, UserExistsException {
+        PendingRegistration pending = emailConfirmationService.validateCode(code);
+        User user = userCreationService.createPendingUser(pending);
+        SuccessAuthenticationDTO successAuth = tokenService.generateTokens(user);
+        updateUserRefreshToken(user, successAuth.refreshToken());
+        return new SuccessAuthenticationDTO(successAuth.token(), successAuth.refreshToken());
+    }
+
+    /**
+     * Обновляет refresh token пользователя
+     *
+     * @param user Пользователь для обновления
+     * @param refreshToken Новый refresh token
+     */
+    private void updateUserRefreshToken(User user, String refreshToken) {
+        user.setRefreshToken(new RefreshToken(
+                refreshToken,
+                Instant.now().plus(properties.getRefreshTokenExpiration(), ChronoUnit.SECONDS)
+        ));
+        userRepository.save(user);
     }
 }
