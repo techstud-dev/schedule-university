@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2024.12.16-0001
+      author: Eldar Khalilov
+      changes:
+        - addColumn:
+            schemaName: auth
+            tableName: users
+            columns:
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false

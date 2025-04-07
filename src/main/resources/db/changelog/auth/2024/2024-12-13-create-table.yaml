@@ -1,0 +1,61 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2024.12.13-0001
+      author: Eldar Khalilov
+      changes:
+        - createSequence:
+            sequenceName: role_id_seq
+            schemaName: auth
+            startValue: 1
+            incrementBy: 1
+
+        - createTable:
+            schemaName: auth
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  defaultValueSequenceNext: "auth.role_id_seq"
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    unique: true
+                    nullable: false
+
+  - changeSet:
+      id: 2024.12.13-0002
+      author: Eldar Khalilov
+      changes:
+        - createSequence:
+            sequenceName: user_id_seq
+            schemaName: auth
+            startValue: 1
+            incrementBy: 1
+
+        - createTable:
+            schemaName: auth
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  defaultValueSequenceNext: "auth.user_id_seq"
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: username
+                  type: VARCHAR(255)
+                  constraints:
+                    unique: true
+                    nullable: false
+              - column:
+                  name: password
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false

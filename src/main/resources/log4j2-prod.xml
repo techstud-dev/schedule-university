@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <Property name="appName">TCHS-SCH-PARSER</Property>
+        <Property name="appType">JAVA</Property>
+        <Property name="risCode">1000</Property>
+        <Property name="projectCode">TCHS</Property>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd-HH:mm:ss:SSS} %5p --- [%t] [%X{task_id}] %-40.40c{1.} : %m%n%xEx
+        </Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="${sys:LOG_PATTERN}"/>
+        </Console>
+
+        <Routing name="FileAppender">
+            <Routes pattern="$${env:SERVER_NAME}">
+                <Route>
+                    <RollingFile name="Rolling-${env:SERVER_NAME}"
+                                 fileName="/opt/logs/scheduler-parser-${env:SERVER_NAME}.log"
+                                 filePattern="/opt/logs/scheduler-parser-${env:SERVER_NAME}-%i-%d{yyyy-MM-dd}.log.gz">
+                        <PatternLayout charset="UTF-8">
+                            <pattern>${sys:LOG_PATTERN}</pattern>
+                        </PatternLayout>
+                        <Policies>
+                            <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                            <SizeBasedTriggeringPolicy size="50 MB"/>
+                        </Policies>
+                    </RollingFile>
+                </Route>
+            </Routes>
+        </Routing>
+        <Socket name="JsonSocketAppender" host="127.0.0.1" port="5170" reconnectionDelayMillis="5000">
+            <PatternLayout charset="UTF-8">
+                <pattern>
+                    {%n "eventId":"[%X{task_id}]-%u{RANDOM}",%n "appName":"${appName}",%n "appType":"${appType}",%n
+                    "level":"%p",%n "text":"%enc{%m}{JSON}",%n "localtime":"%d{yyyy-MM-dd HH:mm:ss.SSS'Z'}{GMT+0}", %n
+                    "loggerName":"%c",%n "threadName":"%t",%n "stack":"%enc{%ex}{JSON}",%n "risCode":"${risCode}",%n
+                    "projectCode":"${projectCode}"%n}%n
+                </pattern>
+            </PatternLayout>
+        </Socket>
+        <Async name="AsyncConsole" blocking="false" bufferSize="16384">
+            <AppenderRef ref="ConsoleAppender"/>
+        </Async>
+        <Async name="AsyncFile" blocking="false" bufferSize="16384">
+            <AppenderRef ref="FileAppender"/>
+        </Async>
+        <Async name="AsyncSocket" blocking="false" bufferSize="16384">
+            <AppenderRef ref="JsonSocketAppender"/>
+        </Async>
+    </Appenders>
+
+    <Loggers>
+        <Root level="INFO">
+            <AppenderRef ref="AsyncConsole"/>
+            <AppenderRef ref="AsyncFile"/>
+            <AppenderRef ref="AsyncSocket"/>
+        </Root>
+    </Loggers>
+</Configuration>
