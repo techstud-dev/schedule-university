@@ -11,6 +11,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Сервис для обновления JWT токенов
+ *
+ * <p>Обеспечивает механизм обновления access token с использованием refresh token</p>
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -19,6 +24,16 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     private final TokenService tokenService;
     private final UserRepository userRepository;
 
+    /**
+     * Обновляет access token
+     *
+     * @param token Refresh token
+     * @return Новый access token
+     * @throws InvalidJwtTokenException Если:
+     * - токен пустой
+     * - токен невалиден
+     * - пользователь не найден
+     */
     @Override
     @Transactional(readOnly = true)
     public String refreshToken(String token) throws Exception {

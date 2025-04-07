@@ -17,6 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+/**
+ * Сервис подтверждения email
+ *
+ * <p>Управляет процессом подтверждения регистрации через email</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class EmailConfirmationServiceImpl implements EmailConfirmationService {
@@ -25,6 +30,13 @@ public class EmailConfirmationServiceImpl implements EmailConfirmationService {
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Инициирует процесс подтверждения
+     *
+     * @param dto Данные регистрации
+     * @return Сгенерированный код подтверждения
+     * @throws MessagingException При ошибке отправки email
+     */
     @Override
     @Transactional
     public String initiateConfirmation(RegisterDTO dto) throws MessagingException {
@@ -34,6 +46,13 @@ public class EmailConfirmationServiceImpl implements EmailConfirmationService {
         return code;
     }
 
+    /**
+     * Проверяет код подтверждения
+     *
+     * @param code 6-значный код
+     * @return Данные ожидающей регистрации
+     * @throws InvalidCodeException Если код неверен или истек
+     */
     @Override
     @Transactional(readOnly = true)
     public PendingRegistration validateCode(String code) throws InvalidCodeException {
@@ -49,6 +68,12 @@ public class EmailConfirmationServiceImpl implements EmailConfirmationService {
         repository.deleteByExpirationDateBefore(Instant.now());
     }
 
+    /**
+     * Вспомогательный метод для сохранения PendingRegistration
+     *
+     * @param dto входной дто регистрации
+     * @param code код для сохранения в Бд
+     */
     private void saveConfirmationData(RegisterDTO dto, String code) {
         repository.findByEmail(dto.email()).ifPresent(repository::delete);
 

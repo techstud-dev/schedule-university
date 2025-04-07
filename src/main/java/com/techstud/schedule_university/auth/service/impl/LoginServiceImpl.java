@@ -19,6 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+/**
+ * Сервис аутентификации пользователей
+ *
+ * <p>Обрабатывает процесс входа в систему и выдачу токенов</p>
+ */
 @Slf4j
 @Service
 public class LoginServiceImpl implements LoginService {
@@ -37,6 +42,14 @@ public class LoginServiceImpl implements LoginService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Выполняет аутентификацию пользователя
+     *
+     * @param loginDto Данные для входа
+     * @return DTO с токенами доступа
+     * @throws UserNotFoundException Если пользователь не найден
+     * @throws BadCredentialsException Если неверный пароль
+     */
     @Override
     @Transactional
     public SuccessAuthenticationDTO processLogin(LoginDTO loginDto) throws Exception {
@@ -54,6 +67,13 @@ public class LoginServiceImpl implements LoginService {
         return new SuccessAuthenticationDTO(successAuth.token(), successAuth.refreshToken());
     }
 
+    /**
+     * Ищет в базе данных юзеров с похожим уникальным полем
+     *
+     * @param field уникальное поле
+     * @return возвращает найденного пользователя
+     * @throws Exception если не нашли бросает NotFound
+     */
     private User findUserByIdentificationField(String field) throws Exception {
         return userRepository.findByUsernameIgnoreCase(field)
                 .or(() -> userRepository.findByEmailIgnoreCase(field))
@@ -61,6 +81,13 @@ public class LoginServiceImpl implements LoginService {
                 .orElseThrow(UserNotFoundException::new);
     }
 
+    /**
+     * Валидирует пароль
+     *
+     * @param rawPassword пароль, пришедший в заросе на логин
+     * @param encodedPassword пароль, который был найден в бд (хешированный)
+     * @throws Exception бросает исключение если пароль не подошёл
+     */
     private void validatePassword(String rawPassword, String encodedPassword) throws Exception {
         if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
             throw new BadCredentialsException("Invalid password.");

@@ -10,6 +10,11 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+/**
+ * Сервис отправки электронной почты
+ *
+ * <p>Отправляет коды подтверждения по email асинхронно</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
@@ -19,6 +24,13 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
 
+    /**
+     * Отправляет код подтверждения
+     *
+     * @param email Адрес получателя
+     * @param code 6-значный код подтверждения
+     * @throws MessagingException При ошибке отправки
+     */
     @Async
     @Override
     public void sendCode(String email, String code) throws MessagingException {

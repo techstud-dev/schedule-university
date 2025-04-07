@@ -14,6 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 
+/**
+ * Сервис создания пользователей
+ *
+ * <p>Выполняет проверку уникальности данных и создание пользователя</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class UserCreationServiceImpl implements UserCreationService {
@@ -22,6 +27,13 @@ public class UserCreationServiceImpl implements UserCreationService {
     private final UniversityService universityService;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Создает нового пользователя
+     *
+     * @param pendingRegistration Данные для регистрации
+     * @return Созданный пользователь
+     * @throws UserExistsException Если пользователь с такими данными уже существует
+     */
     @Override
     @Transactional
     public User createPendingUser(PendingRegistration pendingRegistration) throws UserExistsException {
@@ -39,6 +51,12 @@ public class UserCreationServiceImpl implements UserCreationService {
                 .build();
     }
 
+    /**
+     * Валидирует пользователя
+     *
+     * @param pendingRegistration входящий класс пользователя
+     * @throws UserExistsException если пользователь уже есть в бд бросает исключение
+     */
     private void validateUser(PendingRegistration pendingRegistration) throws UserExistsException {
         if (repository.existsByUniqueFields(
                 pendingRegistration.getUsername(), pendingRegistration.getEmail(), pendingRegistration.getPhoneNumber())) {

@@ -21,6 +21,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+/**
+ * Сервис для управления процессом регистрации пользователей
+ * <p>
+ * Обрабатывает двухэтапную регистрацию:
+ * 1. Инициирование регистрации с проверкой уникальности данных
+ * 2. Подтверждение регистрации с валидацией кода
+ * </p>
+ */
 @Service
 public class RegistrationServiceImpl implements RegistrationService {
     @Qualifier("BeanTokenPropertiesBug")
@@ -41,6 +49,13 @@ public class RegistrationServiceImpl implements RegistrationService {
         this.tokenService = tokenService;
     }
 
+    /**
+     * Начинает процесс регистрации нового пользователя
+     *
+     * @param dto DTO с данными для регистрации
+     * @throws UserExistsException если пользователь с такими данными уже существует
+     * @throws MessagingException при ошибке отправки email с кодом подтверждения
+     */
     // В МИКРОСЕРВИСАХ ТУТ БУДЕТ КАФКА К СЕРВИСУ НОТИФИКАЦИЙ
     @Override
     @Transactional
@@ -51,6 +66,14 @@ public class RegistrationServiceImpl implements RegistrationService {
         emailConfirmationService.initiateConfirmation(dto);
     }
 
+    /**
+     * Завершает процесс регистрации
+     *
+     * @param code Код подтверждения из email
+     * @return DTO с JWT токенами
+     * @throws InvalidCodeException при неверном или просроченном коде
+     * @throws UserExistsException при конфликте данных пользователя
+     */
     // В МИКРОСЕРВИСАХ ТУТ БУДЕТ КАФКА К СЕРВИСУ НОТИФИКАЦИЙ
     @Override
     @Transactional
@@ -63,6 +86,12 @@ public class RegistrationServiceImpl implements RegistrationService {
         return new SuccessAuthenticationDTO(successAuth.token(), successAuth.refreshToken());
     }
 
+    /**
+     * Обновляет refresh token пользователя
+     *
+     * @param user Пользователь для обновления
+     * @param refreshToken Новый refresh token
+     */
     private void updateUserRefreshToken(User user, String refreshToken) {
         user.setRefreshToken(new RefreshToken(
                 refreshToken,
