@@ -346,15 +346,7 @@ public class AuthController {
                             responseCode = "404",
                             description = "Невалидный запрос / Пользователь не найден",
                             content = @Content(
-                                    examples = @ExampleObject(
-                                            value = """
-                                            {
-                                                "systemName": "Schedule Auth",
-                                                "applicationName": "tchs",
-                                                "error": "No user found with refresh token"
-                                            }
-                                            """
-                                    )
+                                    examples = @ExampleObject(value = AuthApiExamples.LOGOUT404_RESPONSE)
                             )
                     )
             }

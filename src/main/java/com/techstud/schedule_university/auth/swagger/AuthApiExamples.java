@@ -138,4 +138,14 @@ public class AuthApiExamples {
 
     public static final String REFRESH_TOKEN_COOKIE =
             "refresh_token=eyJhbGci...; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000";
+
+    // Logout examples
+    public static final String LOGOUT404_RESPONSE =
+            """
+            {
+                "systemName": "Schedule Auth",
+                "applicationName": "tchs",
+                "error": "No user found with refresh token"
+            }
+            """;
 }
