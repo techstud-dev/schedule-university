@@ -1,8 +1,8 @@
 package com.techstud.schedule_university.auth.service;
 
-import com.techstud.schedule_university.auth.dto.request.LoginDTO;
-import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
+import com.techstud.schedule_university.auth.dto.request.LoginRecord;
+import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationRecord;
 
 public interface LoginService {
-    SuccessAuthenticationDTO processLogin(LoginDTO dto) throws Exception;
+    SuccessAuthenticationRecord processLogin(LoginRecord dto) throws Exception;
 }

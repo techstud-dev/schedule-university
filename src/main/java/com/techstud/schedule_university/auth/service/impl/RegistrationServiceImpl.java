@@ -1,8 +1,8 @@
 package com.techstud.schedule_university.auth.service.impl;
 
 import com.techstud.schedule_university.auth.config.TokenProperties;
-import com.techstud.schedule_university.auth.dto.request.RegisterDTO;
-import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
+import com.techstud.schedule_university.auth.dto.request.RegistrationRecord;
+import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationRecord;
 import com.techstud.schedule_university.auth.entity.PendingRegistration;
 import com.techstud.schedule_university.auth.entity.RefreshToken;
 import com.techstud.schedule_university.auth.entity.User;
@@ -59,7 +59,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     // В МИКРОСЕРВИСАХ ТУТ БУДЕТ КАФКА К СЕРВИСУ НОТИФИКАЦИЙ
     @Override
     @Transactional
-    public void startRegistration(RegisterDTO dto) throws MessagingException, UserExistsException {
+    public void startRegistration(RegistrationRecord dto) throws MessagingException, UserExistsException {
         if (userRepository.existsByUniqueFields(dto.username(), dto.email(), dto.phoneNumber())) {
             throw new UserExistsException();
         }
@@ -77,13 +77,13 @@ public class RegistrationServiceImpl implements RegistrationService {
     // В МИКРОСЕРВИСАХ ТУТ БУДЕТ КАФКА К СЕРВИСУ НОТИФИКАЦИЙ
     @Override
     @Transactional
-    public SuccessAuthenticationDTO completeRegistration(String code)
+    public SuccessAuthenticationRecord completeRegistration(String code)
             throws InvalidCodeException, UserExistsException {
         PendingRegistration pending = emailConfirmationService.validateCode(code);
         User user = userCreationService.createPendingUser(pending);
-        SuccessAuthenticationDTO successAuth = tokenService.generateTokens(user);
+        SuccessAuthenticationRecord successAuth = tokenService.generateTokens(user);
         updateUserRefreshToken(user, successAuth.refreshToken());
-        return new SuccessAuthenticationDTO(successAuth.token(), successAuth.refreshToken());
+        return new SuccessAuthenticationRecord(successAuth.token(), successAuth.refreshToken());
     }
 
     /**

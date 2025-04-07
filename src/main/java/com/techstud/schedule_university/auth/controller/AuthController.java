@@ -4,7 +4,7 @@ import com.techstud.schedule_university.auth.aspect.RateLimitKeyType;
 import com.techstud.schedule_university.auth.aspect.RateLimited;
 import com.techstud.schedule_university.auth.dto.ApiRequest;
 import com.techstud.schedule_university.auth.dto.request.*;
-import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
+import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationRecord;
 import com.techstud.schedule_university.auth.exception.UserExistsException;
 import com.techstud.schedule_university.auth.service.LoginService;
 import com.techstud.schedule_university.auth.service.LogoutService;
@@ -55,7 +55,7 @@ public class AuthController {
                     required = true,
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = LoginDTO.class),
+                            schema = @Schema(implementation = LoginRecord.class),
                             examples = @ExampleObject(value = AuthApiExamples.LOGIN_EXAMPLE)
                     )
             ),
@@ -65,7 +65,7 @@ public class AuthController {
                             description = "Успешная аутентификация",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(implementation = SuccessAuthenticationDTO.class),
+                                    schema = @Schema(implementation = SuccessAuthenticationRecord.class),
                                     examples = @ExampleObject(value = AuthApiExamples.LOGIN200_RESPONSE)
                             ),
                             headers = {
@@ -109,10 +109,10 @@ public class AuthController {
     )
     @RateLimited(limit = 3, interval = 100, keyType = RateLimitKeyType.USER_ID)
     @PostMapping("/login")
-    public ResponseEntity<SuccessAuthenticationDTO> login(
-            @RequestBody @Valid ApiRequest<@Valid LoginDTO> dto) throws Exception {
+    public ResponseEntity<SuccessAuthenticationRecord> login(
+            @RequestBody @Valid ApiRequest<@Valid LoginRecord> dto) throws Exception {
         log.info("Incoming login request, id: {}", dto.metadata().requestId());
-        SuccessAuthenticationDTO response = loginService.processLogin(dto.data());
+        SuccessAuthenticationRecord response = loginService.processLogin(dto.data());
         List<ResponseCookie> cookies = cookieUtil.createAuthCookies(response.token(), response.refreshToken());
         log.info("Outgoing login response, id: {}", dto.metadata().requestId());
         return responseUtil.okWithCookies(response, cookies.toArray(ResponseCookie[]::new));
@@ -186,7 +186,7 @@ public class AuthController {
     @RateLimited(limit = 10, interval = 30, keyType = RateLimitKeyType.IP)
     @PostMapping("/register")
     public ResponseEntity<String> register(
-            @RequestBody @Valid ApiRequest<@Valid RegisterDTO> request)
+            @RequestBody @Valid ApiRequest<@Valid RegistrationRecord> request)
             throws MessagingException, UserExistsException {
         log.info("Incoming register request, id: {}", request.metadata().requestId());
         registrationService.startRegistration(request.data());
@@ -224,7 +224,7 @@ public class AuthController {
                             description = "Успешная регистрация",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(implementation = SuccessAuthenticationDTO.class),
+                                    schema = @Schema(implementation = SuccessAuthenticationRecord.class),
                                     examples = @ExampleObject(value = AuthApiExamples.REGISTER200_RESPONSE)
                             ),
                             headers = {
@@ -269,10 +269,10 @@ public class AuthController {
     )
     @RateLimited(limit = 10, interval = 30, keyType = RateLimitKeyType.IP)
     @PostMapping("/confirm")
-    public ResponseEntity<SuccessAuthenticationDTO> confirm(
+    public ResponseEntity<SuccessAuthenticationRecord> confirm(
             @RequestBody @Valid ApiRequest<@Valid ConfirmRegisterRequest> dto) throws Exception {
         log.info("Incoming register request, request id: {}", dto.metadata().requestId());
-        SuccessAuthenticationDTO response = registrationService.completeRegistration(dto.data().code());
+        SuccessAuthenticationRecord response = registrationService.completeRegistration(dto.data().code());
         List<ResponseCookie> cookies = cookieUtil.createAuthCookies(response.token(), response.refreshToken());
         log.info("Outgoing register response, request id: {}", dto.metadata().requestId());
         return responseUtil.okWithCookies(response, cookies.toArray(ResponseCookie[]::new));

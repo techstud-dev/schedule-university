@@ -1,6 +1,6 @@
 package com.techstud.schedule_university.auth;
 
-import com.techstud.schedule_university.auth.dto.request.RegisterDTO;
+import com.techstud.schedule_university.auth.dto.request.RegistrationRecord;
 import com.techstud.schedule_university.auth.entity.PendingRegistration;
 import com.techstud.schedule_university.auth.exception.InvalidCodeException;
 import com.techstud.schedule_university.auth.repository.PendingRegistrationRepository;
@@ -45,7 +45,7 @@ public class EmailConfirmationServiceImplTest {
     @Test
     void initiateConfirmation_ShouldSaveDataAndSendEmail() throws MessagingException {
         // Arrange
-        RegisterDTO dto = new RegisterDTO(
+        RegistrationRecord dto = new RegistrationRecord(
                 "user", "test@mail.com", "+123456789",
                 "password", "User Name", "Group-1", "University"
         );

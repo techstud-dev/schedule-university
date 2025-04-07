@@ -2,7 +2,7 @@ package com.techstud.schedule_university.auth.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record LoginDTO(
+public record LoginRecord(
         @NotBlank(message = "Identification field cannot be blank.")
         String identificationField,
 
