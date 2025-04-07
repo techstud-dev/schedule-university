@@ -7,9 +7,9 @@ spring:
   mail:
     host: smtp.yandex.ru
     port: 587
-    username: schedule.university
-    password: stztrezxnktsbmib
-    sender: schedule.university@yandex.ru
+    username: ${SCH_USERNAME}
+    password: ${SCH_PASSWORD}
+    sender: ${SCH_SENDER}
     properties:
       mail:
         type:
@@ -43,7 +43,7 @@ server:
   port: 8080
 
 jwt:
-  secret: aojisfoapwjfeqauiwfpqwfjipqfqpiwfjopqowfjiqpowfjiqjpqowjfpqwejfipqwefjpqwfjeqw
+  secret: ${SCH_SECRET}
   auth-issuer: sch-auth
   main-audience: sch-main
   access-token-expiration: 3600
