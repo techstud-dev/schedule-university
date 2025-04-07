@@ -2,7 +2,7 @@ package com.techstud.schedule_university.auth;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.techstud.schedule_university.auth.config.JwtProperties;
+import com.techstud.schedule_university.auth.config.TokenProperties;
 import com.techstud.schedule_university.auth.entity.Role;
 import com.techstud.schedule_university.auth.entity.User;
 import com.techstud.schedule_university.auth.exception.InvalidJwtTokenException;
@@ -26,14 +26,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties(TokenProperties.class)
 class TokenServiceImplTest {
 
     @InjectMocks
     private TokenServiceImpl tokenService;
 
     @Mock
-    private JwtProperties jwtProperties;
+    private TokenProperties jwtProperties;
 
     @BeforeEach
     void setUp() {
@@ -71,31 +71,6 @@ class TokenServiceImplTest {
         assertTrue(expiration.isBefore(Instant.now().plusSeconds(3610))); // ~1 hour
 
         verify(jwtProperties).getAccessTokenExpiration();
-    }
-
-    @Test
-    void generateRefreshToken_ShouldReturnValidRefreshToken() {
-        when(jwtProperties.getRefreshTokenExpiration()).thenReturn(7200L); // 2 hours
-
-        User user = User.builder()
-                .username("testUser")
-                .roles(Set.of(new Role("USER")))
-                .build();
-
-        String token = tokenService.generateRefreshToken(user);
-
-        assertNotNull(token);
-        DecodedJWT decodedJWT = JWT.decode(token);
-
-        assertEquals("test-issuer", decodedJWT.getIssuer());
-        assertEquals("testUser", decodedJWT.getSubject());
-        assertEquals("refresh", decodedJWT.getClaim("type").asString());
-
-        Instant expiration = decodedJWT.getExpiresAt().toInstant();
-        assertTrue(expiration.isAfter(Instant.now().plusSeconds(7190))); // ~2 hour
-        assertTrue(expiration.isBefore(Instant.now().plusSeconds(7210))); // ~2 hour
-
-        verify(jwtProperties).getRefreshTokenExpiration();
     }
 
     @Test

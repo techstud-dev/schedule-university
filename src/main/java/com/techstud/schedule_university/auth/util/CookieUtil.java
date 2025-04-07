@@ -1,6 +1,7 @@
 package com.techstud.schedule_university.auth.util;
 
-import com.techstud.schedule_university.auth.config.JwtProperties;
+import com.techstud.schedule_university.auth.config.TokenProperties;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
@@ -8,14 +9,9 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class CookieUtil {
-
-    @Qualifier("JwtProperties")
-    private final JwtProperties jwtProperties;
-
-    public CookieUtil(@Qualifier("JwtProperties") JwtProperties jwtProperties) {
-        this.jwtProperties = jwtProperties;
-    }
+    private final TokenProperties jwtProperties;
 
     public ResponseCookie createHttpOnlyCookie(String name, String value, long maxAgeSeconds) {
         return ResponseCookie.from(name, value)

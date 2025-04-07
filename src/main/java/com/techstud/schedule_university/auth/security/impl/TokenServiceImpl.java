@@ -6,7 +6,8 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.techstud.schedule_university.auth.config.JwtProperties;
+import com.techstud.schedule_university.auth.config.TokenProperties;
+import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
 import com.techstud.schedule_university.auth.entity.Role;
 import com.techstud.schedule_university.auth.entity.User;
 import com.techstud.schedule_university.auth.exception.InvalidJwtTokenException;
@@ -34,12 +35,12 @@ public class TokenServiceImpl implements TokenService {
     @Value("${jwt.main-audience}")
     private String mainAudience;
 
-    @Qualifier("JwtProperties")
-    private JwtProperties properties;
+    @Qualifier("BeanTokenPropertiesBug")
+    private TokenProperties properties;
 
     private Algorithm authAlgorithm;
 
-    public TokenServiceImpl(@Qualifier("JwtProperties") JwtProperties properties) {
+    public TokenServiceImpl(@Qualifier("BeanTokenPropertiesBug") TokenProperties properties) {
         this.properties = properties;
     }
 
@@ -53,33 +54,17 @@ public class TokenServiceImpl implements TokenService {
     }
 
     @Override
-    public String generateToken(User user) {
-        log.info("Generating access token for: {}", user.getUsername());
-        return JWT.create()
-                .withIssuer(authIssuer)
-                .withAudience(mainAudience)
-                .withSubject(user.getUsername())
-                .withClaim("type", "access")
-                .withArrayClaim("roles", user.getRoles().stream()
-                        .map(Role::getAuthority).toArray(String[]::new))
-                .withIssuedAt(Date.from(Instant.now()))
-                .withExpiresAt(Date.from(Instant.now().plus(properties.getAccessTokenExpiration(),
-                        ChronoUnit.SECONDS)))
-                .sign(authAlgorithm);
+    public SuccessAuthenticationDTO generateTokens(User user) {
+        return new SuccessAuthenticationDTO(
+                generateToken(user),
+                generateRefresh(user)
+        );
     }
 
     @Override
-    public String generateRefreshToken(User user) {
-        log.info("Generating refresh token for: {}", user.getUsername());
-        return JWT.create()
-                .withIssuer(authIssuer)
-                .withAudience(mainAudience)
-                .withSubject(user.getUsername())
-                .withClaim("type", "refresh")
-                .withIssuedAt(Date.from(Instant.now()))
-                .withExpiresAt(Date.from(Instant.now().plus(properties.getRefreshTokenExpiration(),
-                        ChronoUnit.SECONDS)))
-                .sign(authAlgorithm);
+    public String generateToken(User user) {
+        Instant expiry = Instant.now().plus(properties.getAccessTokenExpiration(), ChronoUnit.SECONDS);
+        return build(user, expiry, "access");
     }
 
     @Override
@@ -110,5 +95,23 @@ public class TokenServiceImpl implements TokenService {
             log.error("Failed to decode token issuer: {}", e.getMessage());
             throw new IllegalArgumentException("Failed to decode token issuer: " + e.getMessage(), e);
         }
+    }
+
+    private String generateRefresh(User user) {
+        Instant expiry = Instant.now().plus(properties.getRefreshTokenExpiration(), ChronoUnit.SECONDS);
+        return build(user, expiry, "refresh");
+    }
+
+    private String build(User user, Instant expiry, String type) {
+        return JWT.create()
+                .withIssuer(authIssuer)
+                .withAudience(mainAudience)
+                .withSubject(user.getUsername())
+                .withClaim("type", type)
+                .withArrayClaim("roles", user.getRoles().stream()
+                        .map(Role::getAuthority).toArray(String[]::new))
+                .withIssuedAt(Date.from(Instant.now()))
+                .withExpiresAt(java.util.Date.from(expiry))
+                .sign(authAlgorithm);
     }
 }

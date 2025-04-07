@@ -1,10 +1,14 @@
 package com.techstud.schedule_university.auth.controller;
 
+import com.techstud.schedule_university.auth.aspect.RateLimitKeyType;
+import com.techstud.schedule_university.auth.aspect.RateLimited;
 import com.techstud.schedule_university.auth.dto.ApiRequest;
+import com.techstud.schedule_university.auth.dto.request.ConfirmRegisterRequest;
 import com.techstud.schedule_university.auth.dto.request.LoginDTO;
 import com.techstud.schedule_university.auth.dto.request.RefreshTokenRequest;
 import com.techstud.schedule_university.auth.dto.request.RegisterDTO;
 import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
+import com.techstud.schedule_university.auth.exception.UserExistsException;
 import com.techstud.schedule_university.auth.service.LoginService;
 import com.techstud.schedule_university.auth.service.RefreshTokenService;
 import com.techstud.schedule_university.auth.service.RegistrationService;
@@ -17,6 +21,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +39,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
 public class AuthController {
-
     private final LoginService loginService;
     private final RefreshTokenService refreshTokenService;
     private final RegistrationService registrationService;
@@ -106,19 +110,29 @@ public class AuthController {
                     )
             }
     )
+    @RateLimited(limit = 3, interval = 100, keyType = RateLimitKeyType.USER_ID)
     @PostMapping("/login")
     public ResponseEntity<SuccessAuthenticationDTO> login(
             @RequestBody @Valid ApiRequest<@Valid LoginDTO> dto) throws Exception {
         log.info("Incoming login request, id: {}", dto.metadata().requestId());
         SuccessAuthenticationDTO response = loginService.processLogin(dto.data());
-
         List<ResponseCookie> cookies = cookieUtil.createAuthCookies(
                 response.token(),
                 response.refreshToken()
         );
-
         log.info("Outgoing login response, id: {}", dto.metadata().requestId());
         return responseUtil.okWithCookies(response, cookies.toArray(ResponseCookie[]::new));
+    }
+
+    @RateLimited(limit = 10, interval = 30, keyType = RateLimitKeyType.IP)
+    @PostMapping("/register")
+    public ResponseEntity<String> register(
+            @RequestBody @Valid ApiRequest<@Valid RegisterDTO> request)
+            throws MessagingException, UserExistsException {
+        log.info("Incoming register request, id: {}", request.metadata().requestId());
+        registrationService.startRegistration(request.data());
+        log.info("Outgoing register response, id: {}", request.metadata().requestId());
+        return ResponseEntity.ok("Sent confirmation code.");
     }
 
     @Operation(
@@ -203,20 +217,17 @@ public class AuthController {
                     )
             }
     )
-    @PostMapping("/register")
-    public ResponseEntity<SuccessAuthenticationDTO> register(
-            @RequestBody @Valid ApiRequest<@Valid RegisterDTO> dto) throws Exception {
-        log.info("Incoming register request, username: {}, request id: {}",
-                dto.data().username(), dto.metadata().requestId());
-        SuccessAuthenticationDTO response = registrationService.processRegister(dto.data());
-
+    @RateLimited(limit = 10, interval = 30, keyType = RateLimitKeyType.IP)
+    @PostMapping("/confirm")
+    public ResponseEntity<SuccessAuthenticationDTO> confirm(
+            @RequestBody @Valid ApiRequest<@Valid ConfirmRegisterRequest> dto) throws Exception {
+        log.info("Incoming register request, request id: {}", dto.metadata().requestId());
+        SuccessAuthenticationDTO response = registrationService.completeRegistration(dto.data().code());
         List<ResponseCookie> cookies = cookieUtil.createAuthCookies(
                 response.token(),
                 response.refreshToken()
         );
-
-        log.info("Outgoing register response, username {}, request id: {}",
-                dto.data().username(), dto.metadata().requestId());
+        log.info("Outgoing register response, request id: {}", dto.metadata().requestId());
         return responseUtil.okWithCookies(response, cookies.toArray(ResponseCookie[]::new));
     }
 
@@ -264,14 +275,13 @@ public class AuthController {
                     )
             }
     )
+    @RateLimited(limit = 10, interval = 30, keyType = RateLimitKeyType.USER_ID)
     @PostMapping("/refresh-token")
     public ResponseEntity<String> refreshToken(
             @RequestBody @Valid ApiRequest<@Valid RefreshTokenRequest> dto) throws Exception {
         log.info("Incoming refresh token request, id: {}", dto.metadata().requestId());
         String accessToken = refreshTokenService.refreshToken(dto.data().refreshToken());
-
         ResponseCookie accessTokenCookie = cookieUtil.createAccessTokenCookie(accessToken);
-
         log.info("Outgoing refresh token response, id: {}", dto.metadata().requestId());
         return responseUtil.okWithCookies(accessToken, accessTokenCookie);
     }
