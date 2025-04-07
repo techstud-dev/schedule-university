@@ -1,8 +1,8 @@
 package com.techstud.schedule_university.auth;
 
 import com.techstud.schedule_university.auth.config.TokenProperties;
-import com.techstud.schedule_university.auth.dto.request.LoginDTO;
-import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
+import com.techstud.schedule_university.auth.dto.request.LoginRecord;
+import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationRecord;
 import com.techstud.schedule_university.auth.entity.RefreshToken;
 import com.techstud.schedule_university.auth.entity.User;
 import com.techstud.schedule_university.auth.exception.BadCredentialsException;
@@ -48,7 +48,7 @@ class LoginServiceImplTest {
 
     @Test
     void processLogin_ShouldReturnSuccessResponse_WhenCredentialsAreValid() throws Exception {
-        LoginDTO loginDto = new LoginDTO("username", "password");
+        LoginRecord loginDto = new LoginRecord("username", "password");
         User user = new User();
         user.setPassword("hashedPassword");
 
@@ -59,9 +59,9 @@ class LoginServiceImplTest {
         when(passwordEncoder.matches("password", "hashedPassword"))
                 .thenReturn(true);
         when(tokenService.generateTokens(eq(user)))
-                .thenReturn(new SuccessAuthenticationDTO("access-token", "new-refresh-token"));
+                .thenReturn(new SuccessAuthenticationRecord("access-token", "new-refresh-token"));
 
-        SuccessAuthenticationDTO response = loginService.processLogin(loginDto);
+        SuccessAuthenticationRecord response = loginService.processLogin(loginDto);
 
         assertNotNull(response);
         assertEquals("access-token", response.token());
@@ -82,7 +82,7 @@ class LoginServiceImplTest {
 
     @Test
     void loginWithNonExistentUser_ShouldThrowUserNotFoundException() {
-        LoginDTO loginDto = new LoginDTO("unknown_user", "password123");
+        LoginRecord loginDto = new LoginRecord("unknown_user", "password123");
 
         when(userRepository.findByUsernameIgnoreCase(anyString()))
                 .thenReturn(Optional.empty());
@@ -104,7 +104,7 @@ class LoginServiceImplTest {
                 .password("correct_hash")
                 .build();
 
-        LoginDTO loginDto = new LoginDTO("test_user", "wrong_password");
+        LoginRecord loginDto = new LoginRecord("test_user", "wrong_password");
 
         when(userRepository.findByUsernameIgnoreCase(anyString()))
                 .thenReturn(Optional.of(mockUser));
@@ -119,7 +119,7 @@ class LoginServiceImplTest {
 
     @Test
     void loginWithEmptyIdentificationField_ShouldThrowException() {
-        LoginDTO loginDto = new LoginDTO("", "password123");
+        LoginRecord loginDto = new LoginRecord("", "password123");
 
         assertThrows(ConstraintViolationException.class,
                 () -> validateLoginDTO(loginDto));
@@ -127,16 +127,16 @@ class LoginServiceImplTest {
 
     @Test
     void loginWithNullPassword_ShouldThrowValidationException() {
-        LoginDTO loginDto = new LoginDTO("test_user", null);
+        LoginRecord loginDto = new LoginRecord("test_user", null);
 
         assertThrows(ConstraintViolationException.class,
                 () -> validateLoginDTO(loginDto));
     }
 
-    private void validateLoginDTO(LoginDTO dto) {
+    private void validateLoginDTO(LoginRecord dto) {
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         Validator validator = factory.getValidator();
-        Set<ConstraintViolation<LoginDTO>> violations = validator.validate(dto);
+        Set<ConstraintViolation<LoginRecord>> violations = validator.validate(dto);
 
         if (!violations.isEmpty()) {
             throw new ConstraintViolationException(violations);

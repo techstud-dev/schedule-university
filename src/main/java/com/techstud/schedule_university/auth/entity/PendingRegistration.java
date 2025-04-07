@@ -40,6 +40,8 @@ public class PendingRegistration {
     private String confirmationCode;
     private Instant expirationDate;
 
+    private Instant lastSentTime;
+
     @Column(updatable = false)
     @CreationTimestamp
     private Timestamp createdAt;

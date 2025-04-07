@@ -1,8 +1,8 @@
 package com.techstud.schedule_university.auth.service.impl;
 
 import com.techstud.schedule_university.auth.config.TokenProperties;
-import com.techstud.schedule_university.auth.dto.request.LoginDTO;
-import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
+import com.techstud.schedule_university.auth.dto.request.LoginRecord;
+import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationRecord;
 import com.techstud.schedule_university.auth.entity.RefreshToken;
 import com.techstud.schedule_university.auth.entity.User;
 import com.techstud.schedule_university.auth.exception.BadCredentialsException;
@@ -20,7 +20,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 /**
- * Сервис аутентификации пользователей
+ * Сервис аутентификации пользователей FIXME: NEEDS TO BE OPTIMIZED
  *
  * <p>Обрабатывает процесс входа в систему и выдачу токенов</p>
  */
@@ -52,11 +52,11 @@ public class LoginServiceImpl implements LoginService {
      */
     @Override
     @Transactional
-    public SuccessAuthenticationDTO processLogin(LoginDTO loginDto) throws Exception {
+    public SuccessAuthenticationRecord processLogin(LoginRecord loginDto) throws Exception {
         User user = findUserByIdentificationField(loginDto.identificationField());
         validatePassword(loginDto.password(), user.getPassword());
 
-        SuccessAuthenticationDTO successAuth = tokenService.generateTokens(user);
+        SuccessAuthenticationRecord successAuth = tokenService.generateTokens(user);
 
         user.setRefreshToken(new RefreshToken(successAuth.refreshToken(),
                 Instant.now().plus(properties.getRefreshTokenExpiration(),
@@ -64,7 +64,7 @@ public class LoginServiceImpl implements LoginService {
         userRepository.save(user);
 
         log.info("User {} logged in successfully", user.getUsername());
-        return new SuccessAuthenticationDTO(successAuth.token(), successAuth.refreshToken());
+        return new SuccessAuthenticationRecord(successAuth.token(), successAuth.refreshToken());
     }
 
     /**

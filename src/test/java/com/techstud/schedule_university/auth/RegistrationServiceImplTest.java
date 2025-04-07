@@ -1,12 +1,13 @@
 package com.techstud.schedule_university.auth;
 
 import com.techstud.schedule_university.auth.config.TokenProperties;
-import com.techstud.schedule_university.auth.dto.request.RegisterDTO;
-import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
+import com.techstud.schedule_university.auth.dto.request.RegistrationRecord;
+import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationRecord;
 import com.techstud.schedule_university.auth.entity.PendingRegistration;
 import com.techstud.schedule_university.auth.entity.RefreshToken;
 import com.techstud.schedule_university.auth.entity.User;
 import com.techstud.schedule_university.auth.exception.UserExistsException;
+import com.techstud.schedule_university.auth.repository.PendingRegistrationRepository;
 import com.techstud.schedule_university.auth.repository.UserRepository;
 import com.techstud.schedule_university.auth.security.TokenService;
 import com.techstud.schedule_university.auth.service.EmailConfirmationService;
@@ -24,8 +25,7 @@ import java.time.temporal.ChronoUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class RegistrationServiceImplTest {
@@ -40,6 +40,9 @@ public class RegistrationServiceImplTest {
     private UserCreationService userCreationService;
 
     @Mock
+    private PendingRegistrationRepository pendingRegistrationRepository;
+
+    @Mock
     private UserRepository repository;
 
     @Mock
@@ -51,7 +54,7 @@ public class RegistrationServiceImplTest {
     @Test
     void startRegistration_WhenUserExists_ThrowsException() {
         // Arrange
-        RegisterDTO dto = new RegisterDTO(
+        RegistrationRecord dto = new RegistrationRecord(
                 "testUser", "test@mail.com", "+123456789",
                 "password", "Test User", "Group-1", "University"
         );
@@ -71,7 +74,7 @@ public class RegistrationServiceImplTest {
     @Test
     void startRegistration_WhenNewUser_CallsConfirmationService() throws Exception {
         // Arrange
-        RegisterDTO dto = createValidRegisterDTO();
+        RegistrationRecord dto = createValidRegisterDTO();
         when(repository.existsByUniqueFields(any(), any(), any())).thenReturn(false);
 
         // Act
@@ -87,7 +90,7 @@ public class RegistrationServiceImplTest {
         String code = "123456";
         PendingRegistration pending = createPendingRegistration();
         User mockUser = new User();
-        SuccessAuthenticationDTO tokens = new SuccessAuthenticationDTO("access", "refresh");
+        SuccessAuthenticationRecord tokens = new SuccessAuthenticationRecord("access", "refresh");
 
         when(emailConfirmationService.validateCode(code)).thenReturn(pending);
         when(userCreationService.createPendingUser(pending)).thenReturn(mockUser);
@@ -95,7 +98,7 @@ public class RegistrationServiceImplTest {
         when(properties.getRefreshTokenExpiration()).thenReturn(3600L);
 
         // Act
-        SuccessAuthenticationDTO result = service.completeRegistration(code);
+        SuccessAuthenticationRecord result = service.completeRegistration(code);
 
         // Assert
         assertAll(
@@ -103,6 +106,7 @@ public class RegistrationServiceImplTest {
                 () -> assertEquals(tokens.refreshToken(), result.refreshToken())
         );
 
+        verify(pendingRegistrationRepository, times(1)).delete(pending);
         verify(tokenService).generateTokens(mockUser);
     }
 
@@ -111,11 +115,10 @@ public class RegistrationServiceImplTest {
         // Arrange
         String code = "123456";
         String refreshToken = "refresh_token";
-        Instant expectedExpiration = Instant.now().plus(3600, ChronoUnit.SECONDS);
 
         PendingRegistration pending = createPendingRegistration();
         User mockUser = new User();
-        SuccessAuthenticationDTO tokens = new SuccessAuthenticationDTO("access", refreshToken);
+        SuccessAuthenticationRecord tokens = new SuccessAuthenticationRecord("access", refreshToken);
 
         when(emailConfirmationService.validateCode(code)).thenReturn(pending);
         when(userCreationService.createPendingUser(pending)).thenReturn(mockUser);
@@ -139,8 +142,8 @@ public class RegistrationServiceImplTest {
         );
     }
 
-    private RegisterDTO createValidRegisterDTO() {
-        return new RegisterDTO(
+    private RegistrationRecord createValidRegisterDTO() {
+        return new RegistrationRecord(
                 "testUser",
                 "test@mail.com",
                 "+123456789",
