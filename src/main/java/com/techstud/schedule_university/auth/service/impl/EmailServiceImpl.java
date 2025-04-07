@@ -1,6 +1,5 @@
 package com.techstud.schedule_university.auth.service.impl;
 
-import com.techstud.schedule_university.auth.service.CodeGeneratorService;
 import com.techstud.schedule_university.auth.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;

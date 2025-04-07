@@ -14,7 +14,6 @@ import com.techstud.schedule_university.auth.service.EmailConfirmationService;
 import com.techstud.schedule_university.auth.service.RegistrationService;
 import com.techstud.schedule_university.auth.service.UserCreationService;
 import jakarta.mail.MessagingException;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
