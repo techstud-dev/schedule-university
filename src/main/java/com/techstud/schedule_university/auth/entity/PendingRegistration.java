@@ -23,6 +23,7 @@ public class PendingRegistration {
     @SequenceGenerator(name = "pending_id_seq", schema = "auth", sequenceName = "pending_id_seq", allocationSize = 1)
     private Long id;
 
+    @Column(unique = true)
     private String username;
 
     private String fullName;

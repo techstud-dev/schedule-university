@@ -1,0 +1,61 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2025.04.07-0001
+      author: Eldar Khalilov
+      changes:
+        - createSequence:
+            sequenceName: pending_id_seq
+            schemaName: auth
+            startValue: 1
+            incrementBy: 1
+
+        - createTable:
+            schemaName: auth
+            tableName: pending_registration
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  defaultValueSequenceNext: "auth.pending_id_seq"
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: confirmation_code
+                  type: VARCHAR(255)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    unique: true
+              - column:
+                  name: expiration_date
+                  type: TIMESTAMP
+              - column:
+                  name: full_name
+                  type: VARCHAR(255)
+              - column:
+                  name: group_number
+                  type: VARCHAR(255)
+              - column:
+                  name: modified_at
+                  type: TIMESTAMP
+              - column:
+                  name: password
+                  type: VARCHAR(255)
+              - column:
+                  name: phone_number
+                  type: VARCHAR(255)
+                  constraints:
+                    unique: true
+              - column:
+                  name: university
+                  type: VARCHAR(255)
+              - column:
+                  name: username
+                  type: VARCHAR(255)
+                  constraints:
+                    unique: true
