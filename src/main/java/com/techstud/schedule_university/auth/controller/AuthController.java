@@ -3,13 +3,11 @@ package com.techstud.schedule_university.auth.controller;
 import com.techstud.schedule_university.auth.aspect.RateLimitKeyType;
 import com.techstud.schedule_university.auth.aspect.RateLimited;
 import com.techstud.schedule_university.auth.dto.ApiRequest;
-import com.techstud.schedule_university.auth.dto.request.ConfirmRegisterRequest;
-import com.techstud.schedule_university.auth.dto.request.LoginDTO;
-import com.techstud.schedule_university.auth.dto.request.RefreshTokenRequest;
-import com.techstud.schedule_university.auth.dto.request.RegisterDTO;
+import com.techstud.schedule_university.auth.dto.request.*;
 import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
 import com.techstud.schedule_university.auth.exception.UserExistsException;
 import com.techstud.schedule_university.auth.service.LoginService;
+import com.techstud.schedule_university.auth.service.LogoutService;
 import com.techstud.schedule_university.auth.service.RefreshTokenService;
 import com.techstud.schedule_university.auth.service.RegistrationService;
 import com.techstud.schedule_university.auth.swagger.AuthApiExamples;
@@ -27,10 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -43,6 +38,7 @@ public class AuthController {
     private final LoginService loginService;
     private final RefreshTokenService refreshTokenService;
     private final RegistrationService registrationService;
+    private final LogoutService logoutService;
     private final CookieUtil cookieUtil;
     private final ResponseUtil responseUtil;
 
@@ -335,5 +331,41 @@ public class AuthController {
         ResponseCookie accessTokenCookie = cookieUtil.createAccessTokenCookie(accessToken);
         log.info("Outgoing refresh token response, id: {}", dto.metadata().requestId());
         return responseUtil.okWithCookies(accessToken, accessTokenCookie);
+    }
+
+    @Operation(
+            summary = "Выход пользователя из системы",
+            description = "Завершает сессию пользователя, удаляя refresh token",
+            tags = "Authentication",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "204",
+                            description = "Успешный выход из системы"
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Невалидный запрос / Пользователь не найден",
+                            content = @Content(
+                                    examples = @ExampleObject(
+                                            value = """
+                                            {
+                                                "systemName": "Schedule Auth",
+                                                "applicationName": "tchs",
+                                                "error": "No user found with refresh token"
+                                            }
+                                            """
+                                    )
+                            )
+                    )
+            }
+    )
+    @RateLimited
+    @DeleteMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @RequestBody @Valid ApiRequest<@Valid LogoutRequest> request) throws Exception {
+        log.info("logout request received, id: {}", request.metadata().requestId());
+        logoutService.logout(request.data().refreshToken());
+        log.info("Outgoing logout response, id: {}", request.metadata().requestId());
+        return ResponseEntity.noContent().build();
     }
 }
