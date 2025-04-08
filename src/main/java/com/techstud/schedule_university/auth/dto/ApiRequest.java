@@ -1,7 +1,7 @@
 package com.techstud.schedule_university.auth.dto;
 
-import com.techstud.schedule_university.auth.dto.request.LoginDTO;
-import com.techstud.schedule_university.auth.dto.request.RegisterDTO;
+import com.techstud.schedule_university.auth.dto.request.LoginRecord;
+import com.techstud.schedule_university.auth.dto.request.RegistrationRecord;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 
@@ -9,7 +9,7 @@ import jakarta.validation.Valid;
         name = "ApiRequest",
         description = "Базовый запрос API с метаданными",
         type = "object",
-        subTypes = {RegisterDTO.class, LoginDTO.class}
+        subTypes = {RegistrationRecord.class, LoginRecord.class}
 )
 public record ApiRequest<T>(
         @Schema(description = "Метаданные запроса")
@@ -17,7 +17,7 @@ public record ApiRequest<T>(
 
         @Schema(
                 description = "Основные данные запроса",
-                oneOf = {RegisterDTO.class, LoginDTO.class}
+                oneOf = {RegistrationRecord.class, LoginRecord.class}
         )
         @Valid T data
 ) {

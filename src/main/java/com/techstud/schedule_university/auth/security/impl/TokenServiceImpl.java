@@ -7,7 +7,7 @@ import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.techstud.schedule_university.auth.config.TokenProperties;
-import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationDTO;
+import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationRecord;
 import com.techstud.schedule_university.auth.entity.Role;
 import com.techstud.schedule_university.auth.entity.User;
 import com.techstud.schedule_university.auth.exception.InvalidJwtTokenException;
@@ -54,8 +54,8 @@ public class TokenServiceImpl implements TokenService {
     }
 
     @Override
-    public SuccessAuthenticationDTO generateTokens(User user) {
-        return new SuccessAuthenticationDTO(
+    public SuccessAuthenticationRecord generateTokens(User user) {
+        return new SuccessAuthenticationRecord(
                 generateToken(user),
                 generateRefresh(user)
         );

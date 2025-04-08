@@ -1,6 +1,6 @@
 package com.techstud.schedule_university.auth.service.impl;
 
-import com.techstud.schedule_university.auth.dto.request.RegisterDTO;
+import com.techstud.schedule_university.auth.dto.request.RegistrationRecord;
 import com.techstud.schedule_university.auth.entity.PendingRegistration;
 import com.techstud.schedule_university.auth.exception.InvalidCodeException;
 import com.techstud.schedule_university.auth.repository.PendingRegistrationRepository;
@@ -39,7 +39,7 @@ public class EmailConfirmationServiceImpl implements EmailConfirmationService {
      */
     @Override
     @Transactional
-    public String initiateConfirmation(RegisterDTO dto) throws MessagingException {
+    public String initiateConfirmation(RegistrationRecord dto) throws MessagingException {
         String code = codeGeneratorService.generateCode();
         saveConfirmationData(dto, code);
         emailService.sendCode(dto.email(), code);
@@ -74,7 +74,7 @@ public class EmailConfirmationServiceImpl implements EmailConfirmationService {
      * @param dto входной дто регистрации
      * @param code код для сохранения в Бд
      */
-    private void saveConfirmationData(RegisterDTO dto, String code) {
+    private void saveConfirmationData(RegistrationRecord dto, String code) {
         repository.findByEmail(dto.email()).ifPresent(repository::delete);
 
         PendingRegistration pendingRegistration = PendingRegistration.builder()
