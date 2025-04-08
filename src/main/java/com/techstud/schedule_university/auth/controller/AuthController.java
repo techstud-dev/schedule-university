@@ -35,6 +35,7 @@ public class AuthController {
     private final LoginService loginService;
     private final RefreshTokenService refreshTokenService;
     private final RegistrationService registrationService;
+    private final LogoutService logoutService;
     private final CookieUtil cookieUtil;
     private final ResponseUtil responseUtil;
 
@@ -340,5 +341,32 @@ public class AuthController {
             throws MessagingException, ResendTooOftenException, PendingRegistrationNotFoundException {
         emailConfirmationService.resendConfirmationCode(request.data().email());
         return ResponseEntity.ok("Confirmation code resented");
+    }
+  
+    @Operation(
+            summary = "Выход пользователя из системы",
+            description = "Завершает сессию пользователя, удаляя refresh token",
+            tags = "Authentication",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "204",
+                            description = "Успешный выход из системы"
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Невалидный запрос / Пользователь не найден",
+                            content = @Content(
+                                    examples = @ExampleObject(value = AuthApiExamples.LOGOUT404_RESPONSE)
+                            )
+                    )
+            }
+    )
+    @DeleteMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @RequestBody @Valid ApiRequest<@Valid LogoutRequest> request) throws Exception {
+        log.info("logout request received, id: {}", request.metadata().requestId());
+        logoutService.logout(request.data().refreshToken());
+        log.info("Outgoing logout response, id: {}", request.metadata().requestId());
+        return ResponseEntity.noContent().build();
     }
 }

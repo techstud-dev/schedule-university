@@ -143,7 +143,6 @@ public class EmailConfirmationServiceImpl implements EmailConfirmationService {
                     .fullName(dto.fullName())
                     .email(dto.email())
                     .password(dto.password())
-                    .phoneNumber(dto.phoneNumber())
                     .groupNumber(dto.groupNumber())
                     .university(dto.university())
                     .confirmationCode(code)
