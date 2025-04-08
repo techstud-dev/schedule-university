@@ -20,7 +20,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 /**
- * Сервис аутентификации пользователей
+ * Сервис аутентификации пользователей FIXME: NEEDS TO BE OPTIMIZED
  *
  * <p>Обрабатывает процесс входа в систему и выдачу токенов</p>
  */

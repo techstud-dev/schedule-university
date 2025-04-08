@@ -34,7 +34,7 @@ public class EmailServiceImplTest {
         when(mailSender.createMimeMessage()).thenReturn(mockMessage);
 
         // Act
-        emailService.sendCode(recipient, code);
+        emailService.sendCodeAsync(recipient, code);
 
         // Assert
         ArgumentCaptor<MimeMessage> messageCaptor = ArgumentCaptor.forClass(MimeMessage.class);

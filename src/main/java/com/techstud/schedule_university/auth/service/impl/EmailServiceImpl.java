@@ -33,14 +33,14 @@ public class EmailServiceImpl implements EmailService {
      */
     @Async
     @Override
-    public void sendCode(String email, String code) throws MessagingException {
+    public void sendCodeAsync(String email, String code) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message);
 
         helper.setFrom(sender);
         helper.setTo(email);
-        helper.setSubject("Schedule University Code");
-        helper.setText("Email confirmation code " + code);
+        helper.setSubject("Your Verification Code");
+        helper.setText("Confirmation code: " + code);
 
         mailSender.send(message);
     }

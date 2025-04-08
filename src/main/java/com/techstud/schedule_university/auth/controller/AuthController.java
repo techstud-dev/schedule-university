@@ -1,15 +1,12 @@
 package com.techstud.schedule_university.auth.controller;
 
-import com.techstud.schedule_university.auth.aspect.RateLimitKeyType;
-import com.techstud.schedule_university.auth.aspect.RateLimited;
 import com.techstud.schedule_university.auth.dto.ApiRequest;
 import com.techstud.schedule_university.auth.dto.request.*;
 import com.techstud.schedule_university.auth.dto.response.SuccessAuthenticationRecord;
+import com.techstud.schedule_university.auth.exception.PendingRegistrationNotFoundException;
+import com.techstud.schedule_university.auth.exception.ResendTooOftenException;
 import com.techstud.schedule_university.auth.exception.UserExistsException;
-import com.techstud.schedule_university.auth.service.LoginService;
-import com.techstud.schedule_university.auth.service.LogoutService;
-import com.techstud.schedule_university.auth.service.RefreshTokenService;
-import com.techstud.schedule_university.auth.service.RegistrationService;
+import com.techstud.schedule_university.auth.service.*;
 import com.techstud.schedule_university.auth.swagger.AuthApiExamples;
 import com.techstud.schedule_university.auth.util.CookieUtil;
 import com.techstud.schedule_university.auth.util.ResponseUtil;
@@ -34,7 +31,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
 public class AuthController {
-
+    private final EmailConfirmationService emailConfirmationService;
     private final LoginService loginService;
     private final RefreshTokenService refreshTokenService;
     private final RegistrationService registrationService;
@@ -107,7 +104,6 @@ public class AuthController {
                     )
             }
     )
-    @RateLimited(limit = 3, interval = 100, keyType = RateLimitKeyType.USER_ID)
     @PostMapping("/login")
     public ResponseEntity<SuccessAuthenticationRecord> login(
             @RequestBody @Valid ApiRequest<@Valid LoginRecord> dto) throws Exception {
@@ -183,7 +179,6 @@ public class AuthController {
                     )
             }
     )
-    @RateLimited(limit = 10, interval = 30, keyType = RateLimitKeyType.IP)
     @PostMapping("/register")
     public ResponseEntity<String> register(
             @RequestBody @Valid ApiRequest<@Valid RegistrationRecord> request)
@@ -267,14 +262,13 @@ public class AuthController {
                     )
             }
     )
-    @RateLimited(limit = 10, interval = 30, keyType = RateLimitKeyType.IP)
     @PostMapping("/confirm")
     public ResponseEntity<SuccessAuthenticationRecord> confirm(
             @RequestBody @Valid ApiRequest<@Valid ConfirmRegisterRequest> dto) throws Exception {
-        log.info("Incoming register request, request id: {}", dto.metadata().requestId());
+        log.info("Incoming confirmation request, request id: {}", dto.metadata().requestId());
         SuccessAuthenticationRecord response = registrationService.completeRegistration(dto.data().code());
         List<ResponseCookie> cookies = cookieUtil.createAuthCookies(response.token(), response.refreshToken());
-        log.info("Outgoing register response, request id: {}", dto.metadata().requestId());
+        log.info("Outgoing confirmation response, request id: {}", dto.metadata().requestId());
         return responseUtil.okWithCookies(response, cookies.toArray(ResponseCookie[]::new));
     }
 
@@ -322,7 +316,6 @@ public class AuthController {
                     )
             }
     )
-    @RateLimited(limit = 10, interval = 30, keyType = RateLimitKeyType.USER_ID)
     @PostMapping("/refresh-token")
     public ResponseEntity<String> refreshToken(
             @RequestBody @Valid ApiRequest<@Valid RefreshTokenRequest> dto) throws Exception {
@@ -333,6 +326,23 @@ public class AuthController {
         return responseUtil.okWithCookies(accessToken, accessTokenCookie);
     }
 
+    @Operation(
+            summary = "Повторная отправка кода подтверждения",
+            description = "Отправляет новый код подтверждения на email, если прошло достаточно времени",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Код отправлен"),
+                    @ApiResponse(responseCode = "429", description = "Слишком много запросов"),
+                    @ApiResponse(responseCode = "404", description = "Регистрация не найдена")
+            }
+    )
+    @PostMapping("/resend-code")
+    public ResponseEntity<String> resendCode(
+            @RequestBody @Valid ApiRequest<@Valid ResendCodeRequest> request)
+            throws MessagingException, ResendTooOftenException, PendingRegistrationNotFoundException {
+        emailConfirmationService.resendConfirmationCode(request.data().email());
+        return ResponseEntity.ok("Confirmation code resented");
+    }
+  
     @Operation(
             summary = "Выход пользователя из системы",
             description = "Завершает сессию пользователя, удаляя refresh token",
@@ -351,7 +361,6 @@ public class AuthController {
                     )
             }
     )
-    @RateLimited
     @DeleteMapping("/logout")
     public ResponseEntity<Void> logout(
             @RequestBody @Valid ApiRequest<@Valid LogoutRequest> request) throws Exception {

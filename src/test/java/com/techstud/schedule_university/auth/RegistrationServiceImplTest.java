@@ -7,6 +7,7 @@ import com.techstud.schedule_university.auth.entity.PendingRegistration;
 import com.techstud.schedule_university.auth.entity.RefreshToken;
 import com.techstud.schedule_university.auth.entity.User;
 import com.techstud.schedule_university.auth.exception.UserExistsException;
+import com.techstud.schedule_university.auth.repository.PendingRegistrationRepository;
 import com.techstud.schedule_university.auth.repository.UserRepository;
 import com.techstud.schedule_university.auth.security.TokenService;
 import com.techstud.schedule_university.auth.service.EmailConfirmationService;
@@ -24,8 +25,7 @@ import java.time.temporal.ChronoUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class RegistrationServiceImplTest {
@@ -38,6 +38,9 @@ public class RegistrationServiceImplTest {
 
     @Mock
     private UserCreationService userCreationService;
+
+    @Mock
+    private PendingRegistrationRepository pendingRegistrationRepository;
 
     @Mock
     private UserRepository repository;
@@ -103,6 +106,7 @@ public class RegistrationServiceImplTest {
                 () -> assertEquals(tokens.refreshToken(), result.refreshToken())
         );
 
+        verify(pendingRegistrationRepository, times(1)).delete(pending);
         verify(tokenService).generateTokens(mockUser);
     }
 
