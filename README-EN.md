@@ -1,6 +1,10 @@
+<div align="center">
+  <br>
+  <img src="source/logo-dev.png" alt="">
+  <h1>schedule university backend</h1>
+</div>
 
 [![eng readme](source/Yandex_Translate_icon.svg)](https://github.com/techstud-dev/schedule-university/blob/devel/add-readme/README-EN.md)
-
 
 **Schedule University** is a project designed to simplify access to student (and not only) schedules for teachers and students.
 
