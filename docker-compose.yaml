@@ -5,11 +5,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: Main-Application
+    container_name: schedule-university-backend
+    env_file: .env
     environment:
-      DB_URL: jdbc:postgresql://sch-university-db:5432/schedule_university
-      DB_USER: abuser
-      DB_PASSWORD: abuser
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - SPRING_DATASOURCE_URL=${DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
     ports:
       - "8080:8080"
     networks:
