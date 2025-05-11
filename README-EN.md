@@ -4,7 +4,7 @@
   <h1>schedule university backend</h1>
 </div>
 
-[![ru readme](source/Yandex_Translate_icon.svg)]([https://github.com/techstud-dev/schedule-university/blob/devel/add-readme/README-EN.md](https://github.com/techstud-dev/schedule-university/blob/devel/add-readme/README.md))
+[![ru readme](source/Yandex_Translate_icon.svg)](https://github.com/techstud-dev/schedule-university/blob/devel/add-readme/README.md)
 
 **Schedule University** is a project designed to simplify access to student (and not only) schedules for teachers and students.
 
