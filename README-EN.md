@@ -1,5 +1,10 @@
-[![ru](https://img.shields.io/badge/%D1%8F%D0%B7%D1%8B%D0%BA-%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9%20%F0%9F%87%B7%F0%9F%87%BA-white)](README.md)
-[![en](https://img.shields.io/badge/lang-English%20%F0%9F%87%AC%F0%9F%87%A7-white)](README-EN.md)
+<div align="center">
+  <br>
+  <img src="source/logo-dev.png" alt="">
+  <h1>schedule university backend</h1>
+</div>
+
+[![ru readme](source/Yandex_Translate_icon.svg)](https://github.com/techstud-dev/schedule-university/blob/devel/add-readme/README.md)
 
 **Schedule University** is a project designed to simplify access to student (and not only) schedules for teachers and students.
 
@@ -37,16 +42,18 @@ $ docker compose up
 ```
 ### 💣 How to report a bug
 To report a bug create a new issue: [link](https://github.com/techstud-dev/schedule-university/issues/new)
+
 👨‍💼 For users:
 - try to describe in as much detail as possible what the bug relates to, attach detailed screens and a detailed step-by-step how to reproduce the bug
-  🧑‍💻 For developers:
+  
+🧑‍💻 For developers:
 - to the first point additionally: be sure to attach a file with `log` extension so that our team can quickly check and understand what the problem is
 
 ### 📬 How to suggest a new feature
 Write: *[@Funt1koff](https://github.com/Funt1koff)* , describe what you want to propose, how it will help the project.
 
 ### ❗Contributors
-Пока в работе 🚧.
+Still in the works 🚧.
 
 ### 👥 About us
 The team that writes the backend:
