@@ -4,7 +4,8 @@
   <h1>schedule university backend</h1>
 </div>
 
-[![eng readme](source/Yandex_Translate_icon.svg)](https://github.com/techstud-dev/schedule-university/blob/devel/add-readme/README-EN.md)
+[![eng readme](source/Yandex_Translate_icon.svg)](https://github.com/techstud-dev/schedule-university-backend/blob/main/README-EN.md)
+
 
 
 **Schedule University** - проект предназначенный для упрощения получения доступа к студенческому(и не только) расписанию для преподавателей и учащихся.
