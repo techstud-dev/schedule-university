@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Подтверждение email</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .card {
+            width: 400px;
+            height: 486px;
+            background-color: #232323;
+            border-radius: 45px;
+            overflow: hidden;
+            margin: 0 auto;
+            font-family: sans-serif;
+        }
+
+        .top-section {
+            position: relative;
+            height: 243px; /* обязательно! */
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 135px; /* регулировка положения текста */
+            left: 0;
+            width: 100%;
+            padding: 30px;
+            color: white;
+            text-align: left;
+            box-sizing: border-box;
+        }
+
+        .overlay h1 {
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .overlay p {
+            margin: 4px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .highlight {
+            color: #A4FF00;
+            font-weight: bold;
+        }
+
+        .bottom-section {
+            padding: 90px;
+            color: white;
+            text-align: center;
+        }
+
+        .code-wrapper {
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .code-box {
+            background-color: #D2FF00;
+            color: black;
+            font-weight: 700;
+            font-size: 20px;
+            padding: 11px 42px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .footer {
+            font-size: 10px;
+            color: #CCCCCC;
+            margin-top: 28px;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        .company {
+            font-size: 10px;
+            color: #CCCCCC;
+            margin-top: 18px;
+
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="top-section" style="background-image: url('cid:headerImage');">
+        <div class="overlay">
+            <h1>Привет!</h1>
+            <p>Мы команда <span class="highlight">Schedule University</span> и рады тебя приветствовать на нашем сервисе!</p>
+            <br>
+            <p>Для завершения регистрации, нужно<br>подтвердить твой email.</p>
+        </div>
+    </div>
+    <div class="bottom-section">
+        <div class="code-wrapper">
+            <div class="code-box" th:text="${confirmationCode}">test-code</div>
+        </div>
+        <div class="footer">
+            Schedule University – твоя экосистема обучения<br>
+            <div class="company">
+                © TechStud 2025
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
