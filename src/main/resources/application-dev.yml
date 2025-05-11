@@ -20,13 +20,15 @@ spring:
           enable: true
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/schedule_university}
+    url: ${DB_URL:jdbc:postgresql://sch-university-db:5433/schedule_university}
     username: ${DB_USER:abuser}
     password: ${DB_PASSWORD:abuser}
 
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
+        ddl-auto: update
         hbm2ddl:
           create_namespaces: true
 
@@ -55,3 +57,4 @@ logging:
     org:
       hibernate:
         SQL: DEBUG
+    root: off
